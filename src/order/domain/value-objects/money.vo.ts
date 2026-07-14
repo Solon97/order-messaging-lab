@@ -35,6 +35,14 @@ export class Money {
     return new Money(roundHalfToEvenToCents(value));
   }
 
+  static fromCents(cents: number): Money {
+    return new Money(cents);
+  }
+
+  toCents(): number {
+    return this.cents;
+  }
+
   add(other: Money): Money {
     return new Money(this.cents + other.cents);
   }

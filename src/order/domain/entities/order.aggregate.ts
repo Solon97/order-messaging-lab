@@ -11,6 +11,15 @@ export interface CreateOrderProps {
   items: OrderItemProps[];
 }
 
+export interface OrderPersistedProps {
+  orderId: string;
+  customerId: string;
+  items: OrderItem[];
+  status: OrderStatus;
+  totalAmount: Money;
+  createdAt: Date;
+}
+
 export class Order {
   private constructor(
     private readonly _orderId: string,
@@ -51,6 +60,18 @@ export class Order {
         totalAmount,
         new Date(),
       ),
+    );
+  }
+
+  /** Rebuilds an already-valid Order from persisted data, bypassing creation validation. */
+  static reconstitute(props: OrderPersistedProps): Order {
+    return new Order(
+      props.orderId,
+      props.customerId,
+      props.items,
+      props.status,
+      props.totalAmount,
+      props.createdAt,
     );
   }
 

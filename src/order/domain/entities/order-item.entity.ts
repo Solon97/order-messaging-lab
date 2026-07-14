@@ -9,6 +9,13 @@ export interface OrderItemProps {
   unitPrice: number;
 }
 
+export interface OrderItemPersistedProps {
+  orderItemId: string;
+  sku: string;
+  quantity: number;
+  unitPrice: Money;
+}
+
 export class OrderItem {
   private constructor(
     private readonly _orderItemId: string,
@@ -39,6 +46,16 @@ export class OrderItem {
         props.quantity,
         Money.fromNumber(props.unitPrice),
       ),
+    );
+  }
+
+  /** Rebuilds an already-valid OrderItem from persisted data, bypassing creation validation. */
+  static reconstitute(props: OrderItemPersistedProps): OrderItem {
+    return new OrderItem(
+      props.orderItemId,
+      props.sku,
+      props.quantity,
+      props.unitPrice,
     );
   }
 
