@@ -7,6 +7,7 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { OrderEntity } from '@/order/infrastructure/persistence/typeorm/order.entity';
 import { OrderItemEntity } from '@/order/infrastructure/persistence/typeorm/order-item.entity';
+import type { OrderResponseDto } from '@/order/infrastructure/http/dto/order-response.dto';
 
 jest.setTimeout(120_000);
 
@@ -44,9 +45,9 @@ describe('Orders (Postgres adapter e2e)', () => {
     // require (not a static import) so this file's first load of AppModule
     // only happens after PERSISTENCE_PROVIDER/DATABASE_URL are set, letting
     // OrdersModule pick up the Postgres branch instead of the in-memory one.
-
-    const { AppModule } =
-      require('@/app.module') as typeof import('@/app.module');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const appModuleExports: unknown = require('@/app.module');
+    const { AppModule } = appModuleExports as typeof import('@/app.module');
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -71,10 +72,11 @@ describe('Orders (Postgres adapter e2e)', () => {
       .post('/orders')
       .send(validPayload)
       .expect(201);
+    const body = response.body as OrderResponseDto;
 
-    expect(response.body.orderId).toEqual(expect.any(String));
-    expect(response.body.status).toBe('CREATED');
-    expect(response.body.totalAmount).toBe(26);
+    expect(body.orderId).toEqual(expect.any(String));
+    expect(body.status).toBe('CREATED');
+    expect(body.totalAmount).toBe(26);
   });
 
   it('POST /orders returns 400 and persists nothing when items is empty', async () => {
@@ -89,18 +91,20 @@ describe('Orders (Postgres adapter e2e)', () => {
       .post('/orders')
       .send(validPayload)
       .expect(201);
+    const createdBody = created.body as OrderResponseDto;
 
     const response = await request(app.getHttpServer())
-      .get(`/orders/${created.body.orderId}`)
+      .get(`/orders/${createdBody.orderId}`)
       .expect(200);
+    const body = response.body as OrderResponseDto;
 
-    expect(response.body).toMatchObject({
-      orderId: created.body.orderId,
+    expect(body).toMatchObject({
+      orderId: createdBody.orderId,
       customerId: validPayload.customerId,
       status: 'CREATED',
       totalAmount: 26,
     });
-    expect(response.body.items).toHaveLength(2);
+    expect(body.items).toHaveLength(2);
   });
 
   it('GET /orders/:id returns 404 for a non-existent order (valid uuid)', async () => {

@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import type { AppModule as AppModuleType } from '@/app.module';
+import type { OrderResponseDto } from '@/order/infrastructure/http/dto/order-response.dto';
 
 describe('OrdersController (e2e)', () => {
   let app: INestApplication<App>;
@@ -21,6 +22,7 @@ describe('OrdersController (e2e)', () => {
     // only happens after PERSISTENCE_PROVIDER is pinned to IN_MEMORY, keeping
     // this suite fast and Docker-free regardless of the module's default.
     process.env.PERSISTENCE_PROVIDER = 'IN_MEMORY';
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     ({ AppModule } = require('@/app.module') as typeof import('@/app.module'));
   });
 
@@ -50,11 +52,12 @@ describe('OrdersController (e2e)', () => {
         .post('/orders')
         .send(validPayload)
         .expect(201);
+      const body = response.body as OrderResponseDto;
 
-      expect(response.body.orderId).toEqual(expect.any(String));
-      expect(response.body.status).toBe('CREATED');
-      expect(response.body.totalAmount).toBe(26);
-      expect(response.body.createdAt).toEqual(expect.any(String));
+      expect(body.orderId).toEqual(expect.any(String));
+      expect(body.status).toBe('CREATED');
+      expect(body.totalAmount).toBe(26);
+      expect(body.createdAt).toEqual(expect.any(String));
     });
 
     it('returns 400 and persists nothing when items is empty', async () => {
@@ -116,18 +119,20 @@ describe('OrdersController (e2e)', () => {
         .post('/orders')
         .send(validPayload)
         .expect(201);
+      const createdBody = created.body as OrderResponseDto;
 
       const response = await request(app.getHttpServer())
-        .get(`/orders/${created.body.orderId}`)
+        .get(`/orders/${createdBody.orderId}`)
         .expect(200);
+      const body = response.body as OrderResponseDto;
 
-      expect(response.body).toMatchObject({
-        orderId: created.body.orderId,
+      expect(body).toMatchObject({
+        orderId: createdBody.orderId,
         customerId: validPayload.customerId,
         status: 'CREATED',
         totalAmount: 26,
       });
-      expect(response.body.items).toHaveLength(2);
+      expect(body.items).toHaveLength(2);
     });
 
     it('returns 404 for a non-existent order (valid uuid)', async () => {
