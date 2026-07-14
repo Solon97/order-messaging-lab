@@ -1,0 +1,59 @@
+import { randomUUID } from 'crypto';
+import { Money } from './money.vo';
+import { OrderStatus } from './order-status.vo';
+import { OrderItem, OrderItemProps } from './order-item.entity';
+import { EmptyOrderError } from './errors/empty-order.error';
+
+export interface CreateOrderProps {
+  customerId: string;
+  items: OrderItemProps[];
+}
+
+export class Order {
+  private constructor(
+    private readonly _orderId: string,
+    private readonly _customerId: string,
+    private readonly _items: OrderItem[],
+    private readonly _status: OrderStatus,
+    private readonly _totalAmount: Money,
+    private readonly _createdAt: Date,
+  ) {}
+
+  static create(props: CreateOrderProps): Order {
+    if (props.items.length === 0) {
+      throw new EmptyOrderError();
+    }
+
+    const items = props.items.map((item) => OrderItem.create(item));
+    const totalAmount = items.reduce(
+      (total, item) => total.add(item.unitPrice.multiply(item.quantity)),
+      Money.fromNumber(0),
+    );
+
+    return new Order(randomUUID(), props.customerId, items, OrderStatus.CREATED, totalAmount, new Date());
+  }
+
+  get orderId(): string {
+    return this._orderId;
+  }
+
+  get customerId(): string {
+    return this._customerId;
+  }
+
+  get items(): readonly OrderItem[] {
+    return this._items;
+  }
+
+  get status(): OrderStatus {
+    return this._status;
+  }
+
+  get totalAmount(): Money {
+    return this._totalAmount;
+  }
+
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+}
