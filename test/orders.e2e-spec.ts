@@ -2,10 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from '@/app.module';
+import type { AppModule as AppModuleType } from '@/app.module';
 
 describe('OrdersController (e2e)', () => {
   let app: INestApplication<App>;
+  let AppModule: typeof AppModuleType;
 
   const validPayload = {
     customerId: '11111111-1111-4111-8111-111111111111',
@@ -14,6 +15,18 @@ describe('OrdersController (e2e)', () => {
       { sku: 'SKU-2', quantity: 1, unitPrice: 5 },
     ],
   };
+
+  beforeAll(() => {
+    // require (not a static import) so this file's first load of AppModule
+    // only happens after PERSISTENCE_PROVIDER is pinned to IN_MEMORY, keeping
+    // this suite fast and Docker-free regardless of the module's default.
+    process.env.PERSISTENCE_PROVIDER = 'IN_MEMORY';
+    ({ AppModule } = require('@/app.module') as typeof import('@/app.module'));
+  });
+
+  afterAll(() => {
+    delete process.env.PERSISTENCE_PROVIDER;
+  });
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -124,9 +137,7 @@ describe('OrdersController (e2e)', () => {
     });
 
     it('returns 400 for an invalid uuid format', async () => {
-      await request(app.getHttpServer())
-        .get('/orders/not-a-uuid')
-        .expect(400);
+      await request(app.getHttpServer()).get('/orders/not-a-uuid').expect(400);
     });
   });
 });

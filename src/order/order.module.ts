@@ -11,7 +11,8 @@ import { typeOrmDataSourceOptions } from './infrastructure/persistence/typeorm/d
 import { TypeOrmOrderRepository } from './infrastructure/persistence/typeorm/typeorm-order.repository';
 import { OrdersController } from './infrastructure/http/orders.controller';
 
-const isPostgres = process.env.PERSISTENCE_PROVIDER === 'POSTGRES';
+const isPostgres =
+  (process.env.PERSISTENCE_PROVIDER ?? 'POSTGRES') === 'POSTGRES';
 
 @Module({
   imports: isPostgres
@@ -29,7 +30,7 @@ const isPostgres = process.env.PERSISTENCE_PROVIDER === 'POSTGRES';
     {
       provide: ORDER_REPOSITORY,
       useFactory: (orderRepository?: Repository<OrderEntity>) => {
-        const provider = process.env.PERSISTENCE_PROVIDER ?? 'IN_MEMORY';
+        const provider = process.env.PERSISTENCE_PROVIDER ?? 'POSTGRES';
         switch (provider) {
           case 'IN_MEMORY':
             return new InMemoryOrderRepository();
