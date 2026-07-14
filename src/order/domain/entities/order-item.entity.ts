@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { Either, left, right } from '@/shared/either';
 import { Money } from '../value-objects/money.vo';
 import { InvalidOrderItemError } from '../errors/invalid-order-item.error';
 
@@ -16,22 +17,30 @@ export class OrderItem {
     private readonly _unitPrice: Money,
   ) {}
 
-  static create(props: OrderItemProps): OrderItem {
+  static create(
+    props: OrderItemProps,
+  ): Either<InvalidOrderItemError, OrderItem> {
     if (!props.sku || props.sku.trim().length === 0) {
-      throw new InvalidOrderItemError('sku must not be empty');
+      return left(new InvalidOrderItemError('sku must not be empty'));
     }
     if (props.quantity <= 0) {
-      throw new InvalidOrderItemError('quantity must be greater than zero');
+      return left(
+        new InvalidOrderItemError('quantity must be greater than zero'),
+      );
     }
     if (props.unitPrice < 0) {
-      throw new InvalidOrderItemError('unitPrice must not be negative');
+      return left(
+        new InvalidOrderItemError('unitPrice must not be negative'),
+      );
     }
 
-    return new OrderItem(
-      randomUUID(),
-      props.sku,
-      props.quantity,
-      Money.fromNumber(props.unitPrice),
+    return right(
+      new OrderItem(
+        randomUUID(),
+        props.sku,
+        props.quantity,
+        Money.fromNumber(props.unitPrice),
+      ),
     );
   }
 
