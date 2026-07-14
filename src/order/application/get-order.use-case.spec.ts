@@ -1,6 +1,7 @@
 import { GetOrderUseCase } from './get-order.use-case';
 import { InMemoryOrderRepository } from '@/order/infrastructure/persistence/in-memory-order.repository';
 import { Order } from '@/order/domain/entities/order.aggregate';
+import { OrderNotFoundError } from '@/order/domain/errors/order-not-found.error';
 
 describe('GetOrderUseCase', () => {
   it('returns the order when found', async () => {
@@ -18,15 +19,21 @@ describe('GetOrderUseCase', () => {
 
     const result = await useCase.execute(order.orderId);
 
-    expect(result).toBe(order);
+    if (!result.isRight()) {
+      throw new Error('expected right');
+    }
+    expect(result.value).toBe(order);
   });
 
-  it('returns null when the order is not found', async () => {
+  it('returns left with OrderNotFoundError when the order is not found', async () => {
     const repository = new InMemoryOrderRepository();
     const useCase = new GetOrderUseCase(repository);
 
     const result = await useCase.execute('unknown-id');
 
-    expect(result).toBeNull();
+    if (!result.isLeft()) {
+      throw new Error('expected left');
+    }
+    expect(result.value).toBeInstanceOf(OrderNotFoundError);
   });
 });
