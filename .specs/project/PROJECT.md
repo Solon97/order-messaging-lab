@@ -17,7 +17,8 @@
 
 - Framework: NestJS (TypeScript)
 - Language: TypeScript
-- Database: PostgreSQL (via TypeORM), com adapter in-memory para dev/teste sem infra externa
+- Topologia: monólito modular — um único processo NestJS com todos os subdomínios como módulos isolados por pasta, comunicando-se só via broker real (nunca import direto entre módulos). Sem deploy separado por subdomínio.
+- Database: PostgreSQL (via TypeORM) — **uma única instância, um schema por subdomínio** (cada subdomínio só acessa o próprio schema via sua própria porta de repositório); adapter in-memory para dev/teste sem infra externa
 - Messaging: SNS/SQS (Fase 1, via LocalStack em dev/teste) → RabbitMQ intercambiável (Fase 2, via Testcontainers)
 
 **Key dependencies:** `class-validator`/`class-transformer` (validação de DTO), `@nestjs/typeorm` + `typeorm` (persistência), `zod` ou `class-validator` (validação de schema de evento), `dependency-cruiser` ou ESLint boundaries (lint de arquitetura), Jest + Testcontainers/LocalStack (testes).
@@ -50,3 +51,6 @@
 - `GET /orders/:id` (projeção de leitura): **incluído já na Fase 0** (PRD pergunta aberta #2).
 - Lint de arquitetura bloqueante em CI: **desde a Fase 0** (PRD pergunta aberta #7).
 - Estrutura de módulos: Fase 0 cria apenas o subdomínio `order` completo (domain/application/infrastructure); `payment`, `stock`, `notification` entram na Fase 1.
+- `OrderItem` é entidade filha do agregado `Order` (identidade própria), não value object.
+- Topologia de deploy: **monólito modular** (um processo, módulos por subdomínio), não microsserviços separados.
+- Banco de dados: **uma instância Postgres, schema por subdomínio**, não uma instância por subdomínio.

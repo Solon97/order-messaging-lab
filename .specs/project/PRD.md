@@ -425,6 +425,8 @@ Todo evento segue o envelope canônico:
 
 ### 7.1 Visão arquitetural (hexagonal + coreografia)
 
+> **Nota de decisão (topologia de deploy e dados):** o lab roda como **monólito modular** — um único processo/app NestJS contendo todos os subdomínios como módulos isolados por pasta, comunicando-se exclusivamente via broker real (SNS/SQS/RabbitMQ), nunca por import direto entre módulos. Não há deploy separado por subdomínio (isso ficaria fora do foco do lab, que é validar isolamento de domínio e portabilidade de broker, não orquestração de N deploys). A persistência usa **uma única instância Postgres com um schema por subdomínio** — cada subdomínio só acessa seu próprio schema através da sua própria porta de repositório (`OrderRepository`, `StockRepository` etc., seção 5.3), preservando isolamento lógico de dados sem o custo operacional de N bancos físicos no ambiente local.
+
 - Cada subdomínio (`order`, `payment`, `stock`, `notification`) é um módulo NestJS independente, estruturado internamente em três camadas:
   - `domain/`: entities, value objects, regras de negócio puras, interfaces de porta (sem dependência de framework ou SDK externo).
   - `application/`: casos de uso (use cases) que orquestram o domínio e chamam as portas — ainda sem conhecer a implementação concreta.
