@@ -1,4 +1,4 @@
-# Validation Report — fase0-fundacao-dominio (Phase 5: Postgres Adapter, T17-T22)
+# Validation Report — domain-foundation (Phase 5: Postgres Adapter, T17-T22)
 
 **Verifier**: independent pass, commit range `0ea5704..809d6ee` (7 commits: T17-T22 + tasks.md status update).
 **Date**: 2026-07-14

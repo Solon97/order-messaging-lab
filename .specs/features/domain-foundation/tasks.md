@@ -8,14 +8,14 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 ---
 
-**Design**: `.specs/features/fase0-fundacao-dominio/design.md`
+**Design**: `.specs/features/domain-foundation/design.md`
 **Status**: Draft
 
 ---
 
 ## Test Coverage Matrix
 
-> Generated from codebase (no existing domain/application tests to sample — `src/app.*.spec.ts` is the only precedent, a trivial NestJS default). Guidelines found: `.specs/features/fase0-fundacao-dominio/spec.md` (Success Criteria: "≥ 80% cobertura em `domain/`"), no `AGENTS.md`/`CONTRIBUTING.md`/coverage threshold in `package.json`. Strong defaults applied elsewhere.
+> Generated from codebase (no existing domain/application tests to sample — `src/app.*.spec.ts` is the only precedent, a trivial NestJS default). Guidelines found: `.specs/features/domain-foundation/spec.md` (Success Criteria: "≥ 80% cobertura em `domain/`"), no `AGENTS.md`/`CONTRIBUTING.md`/coverage threshold in `package.json`. Strong defaults applied elsewhere.
 
 | Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
 |---|---|---|---|---|

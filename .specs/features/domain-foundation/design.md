@@ -1,6 +1,6 @@
 # Fase 0 — Fundação de Domínio + API de Criação de Pedido — Design
 
-**Spec**: `.specs/features/fase0-fundacao-dominio/spec.md`
+**Spec**: `.specs/features/domain-foundation/spec.md`
 **Status**: Draft
 
 ---
