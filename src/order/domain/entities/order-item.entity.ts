@@ -1,5 +1,5 @@
 import { Either, left, right } from '@/shared/either';
-import { UniqueEntityId } from '@/shared/unique-entity-id';
+import { UniqueEntityId } from '@/shared/unique-entity-id/unique-entity-id';
 import { Money } from '../value-objects/money.vo';
 import { InvalidOrderItemError } from '../errors/invalid-order-item.error';
 
