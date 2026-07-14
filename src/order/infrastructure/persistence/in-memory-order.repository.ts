@@ -4,11 +4,12 @@ import { OrderRepository } from '@/order/domain/repositories/order-repository';
 export class InMemoryOrderRepository implements OrderRepository {
   private readonly orders = new Map<string, Order>();
 
-  async save(order: Order): Promise<void> {
+  save(order: Order): Promise<void> {
     this.orders.set(order.orderId, order);
+    return Promise.resolve();
   }
 
-  async findById(orderId: string): Promise<Order | null> {
-    return this.orders.get(orderId) ?? null;
+  findById(orderId: string): Promise<Order | null> {
+    return Promise.resolve(this.orders.get(orderId) ?? null);
   }
 }

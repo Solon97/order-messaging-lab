@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Order } from '@/order/domain/entities/order.aggregate';
-import { OrderRepository } from '@/order/domain/repositories/order-repository';
+import type { OrderRepository } from '@/order/domain/repositories/order-repository';
 import { ORDER_REPOSITORY } from './order-repository.token';
 
 @Injectable()
