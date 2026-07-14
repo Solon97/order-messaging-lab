@@ -49,7 +49,7 @@ Phases are ordered and run sequentially — each phase completes before the next
 T1 → T2 → T3 → T4 → T5 → T6
 ```
 
-### Phase 2: Application Layer + In-Memory Adapter
+### Phase 2: Application Layer + In-Memory Adapter ✅ Complete
 
 ```
 T7 → T8 → T9
@@ -223,7 +223,7 @@ T17 → T18 → T19 → T20 → T21 → T22
 
 ---
 
-### T7: Create `InMemoryOrderRepository` adapter
+### T7: Create `InMemoryOrderRepository` adapter ✅ Done
 
 **What**: Implement `OrderRepository` backed by a `Map<string, Order>`.
 **Where**: `src/order/infrastructure/persistence/in-memory-order.repository.ts`, `src/order/infrastructure/persistence/in-memory-order.repository.spec.ts`
@@ -236,17 +236,17 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `save` stores the order, `findById` returns it; `findById` returns `null` for unknown id
-- [ ] Two `save` calls with different orders are both independently retrievable
-- [ ] Gate check passes: `npm test -- in-memory-order.repository`
-- [ ] Test count: ≥ 3 tests pass (save+findById hit, findById miss, multiple orders isolated)
+- [x] `save` stores the order, `findById` returns it; `findById` returns `null` for unknown id
+- [x] Two `save` calls with different orders are both independently retrievable
+- [x] Gate check passes: `npm test -- in-memory-order.repository`
+- [x] Test count: ≥ 3 tests pass (save+findById hit, findById miss, multiple orders isolated) — 3 tests
 
 **Tests**: unit
 **Gate**: quick
 
 ---
 
-### T8: Create `CreateOrderUseCase`
+### T8: Create `CreateOrderUseCase` ✅ Done
 
 **What**: Implement `execute(input)` orchestrating `Order.create` + `OrderRepository.save`, injected via `ORDER_REPOSITORY` token.
 **Where**: `src/order/application/create-order.use-case.ts`, `src/order/application/create-order.use-case.spec.ts`, `src/order/application/order-repository.token.ts` (DI token)
@@ -259,18 +259,18 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `execute` builds an `Order` via `Order.create` and persists it via the injected repository
-- [ ] Returns the created `Order` (with `orderId`, `totalAmount`, `status`, `createdAt`)
-- [ ] Domain errors (`EmptyOrderError`, `InvalidOrderItemError`) propagate uncaught (not swallowed/wrapped)
-- [ ] Gate check passes: `npm test -- create-order.use-case`
-- [ ] Test count: ≥ 4 tests pass (success persists + returns correct total, empty items propagates EmptyOrderError, invalid item propagates InvalidOrderItemError, repository.save is called exactly once on success)
+- [x] `execute` builds an `Order` via `Order.create` and persists it via the injected repository
+- [x] Returns the created `Order` (with `orderId`, `totalAmount`, `status`, `createdAt`)
+- [x] Domain errors (`EmptyOrderError`, `InvalidOrderItemError`) propagate uncaught (not swallowed/wrapped)
+- [x] Gate check passes: `npm test -- create-order.use-case`
+- [x] Test count: ≥ 4 tests pass (success persists + returns correct total, empty items propagates EmptyOrderError, invalid item propagates InvalidOrderItemError, repository.save is called exactly once on success) — 4 tests
 
 **Tests**: unit
 **Gate**: quick
 
 ---
 
-### T9: Create `GetOrderUseCase`
+### T9: Create `GetOrderUseCase` ✅ Done
 
 **What**: Implement `execute(orderId)` delegating to `OrderRepository.findById`.
 **Where**: `src/order/application/get-order.use-case.ts`, `src/order/application/get-order.use-case.spec.ts`
@@ -283,9 +283,9 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `execute` returns the `Order` when found, `null` when not found
-- [ ] Gate check passes: `npm test -- get-order.use-case`
-- [ ] Test count: ≥ 2 tests pass (found, not found)
+- [x] `execute` returns the `Order` when found, `null` when not found
+- [x] Gate check passes: `npm test -- get-order.use-case`
+- [x] Test count: ≥ 2 tests pass (found, not found) — 2 tests
 
 **Tests**: unit
 **Gate**: quick
