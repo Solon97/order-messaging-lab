@@ -8,6 +8,11 @@ import {
   Post,
   UseFilters,
 } from '@nestjs/common';
+import {
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { CreateOrderUseCase } from '@/order/application/create-order.use-case';
 import { GetOrderUseCase } from '@/order/application/get-order.use-case';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -23,6 +28,10 @@ export class OrdersController {
   ) {}
 
   @Post()
+  @ApiOperation({ summary: 'Cria um pedido' })
+  @ApiResponse({ status: 201, type: OrderResponseDto })
+  @ApiResponse({ status: 400, description: 'Payload inválido' })
+  @ApiResponse({ status: 500, description: 'Erro interno inesperado' })
   async create(@Body() dto: CreateOrderDto): Promise<OrderResponseDto> {
     const result = await this.createOrderUseCase.execute(dto);
     if (result.isLeft()) {
@@ -32,6 +41,12 @@ export class OrdersController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Consulta um pedido por id' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  @ApiResponse({ status: 400, description: 'id em formato inválido' })
+  @ApiResponse({ status: 404, description: 'Pedido não encontrado' })
+  @ApiResponse({ status: 500, description: 'Erro interno inesperado' })
   async findById(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<OrderResponseDto> {

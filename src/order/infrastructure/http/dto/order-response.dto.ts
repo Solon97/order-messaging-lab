@@ -1,18 +1,29 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Order } from '@/order/domain/entities/order.aggregate';
 
 export class OrderItemResponseDto {
+  @ApiProperty()
   orderItemId: string;
+  @ApiProperty()
   sku: string;
+  @ApiProperty()
   quantity: number;
+  @ApiProperty()
   unitPrice: number;
 }
 
 export class OrderResponseDto {
+  @ApiProperty()
   orderId: string;
+  @ApiProperty()
   customerId: string;
+  @ApiProperty({ type: [OrderItemResponseDto] })
   items: OrderItemResponseDto[];
+  @ApiProperty()
   status: string;
+  @ApiProperty()
   totalAmount: number;
+  @ApiProperty()
   createdAt: Date;
 
   static fromDomain(order: Order): OrderResponseDto {
