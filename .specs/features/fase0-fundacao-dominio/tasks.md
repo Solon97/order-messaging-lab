@@ -58,22 +58,16 @@ T7 → T8 → T9
 ### Phase 3: HTTP Adapter (P1 critical path)
 
 ```
-T10 → T11 → T12 → T13
+T10 → T11 → T12 → T13 -> T14
 ```
 
-### Phase 4: OpenAPI Documentation (P3)
-
-```
-T14
-```
-
-### Phase 5: Architecture Lint + CI (P2)
+### Phase 4: Architecture Lint + CI (P2)
 
 ```
 T15 → T16
 ```
 
-### Phase 6: Postgres Adapter (P2)
+### Phase 5: Postgres Adapter (P2)
 
 ```
 T17 → T18 → T19 → T20 → T21 → T22
@@ -606,10 +600,9 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6
 
 Phase 1:  T1 ──→ T2 ──→ T3 ──→ T4 ──→ T5 ──→ T6
 Phase 2:  T7 ──→ T8 ──→ T9
-Phase 3:  T10 ──→ T11 ──→ T12 ──→ T13
-Phase 4:  T14
-Phase 5:  T15 ──→ T16
-Phase 6:  T17 ──→ T18 ──→ T19 ──→ T20 ──→ T21 ──→ T22
+Phase 3:  T10 ──→ T11 ──→ T12 ──→ T13 ──→ T14
+Phase 4:  T15 ──→ T16
+Phase 5:  T17 ──→ T18 ──→ T19 ──→ T20 ──→ T21 ──→ T22
 ```
 
 Execution is strictly sequential — there is no intra-phase parallelism. A single agent (or batch worker) works one task at a time, in order.
