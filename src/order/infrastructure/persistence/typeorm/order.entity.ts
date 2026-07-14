@@ -4,23 +4,23 @@ import { OrderItemEntity } from './order-item.entity';
 @Entity('orders')
 export class OrderEntity {
   @PrimaryColumn('uuid')
-  orderId: string;
+  orderId!: string;
 
   @Column('uuid')
-  customerId: string;
+  customerId!: string;
 
   @Column('varchar')
-  status: string;
+  status!: string;
 
   @Column('numeric', { precision: 12, scale: 2 })
-  totalAmount: string;
+  totalAmount!: string;
 
   @Column('timestamptz')
-  createdAt: Date;
+  createdAt!: Date;
 
   @OneToMany(() => OrderItemEntity, (item) => item.order, {
     cascade: true,
     eager: true,
   })
-  items: OrderItemEntity[];
+  items!: OrderItemEntity[];
 }

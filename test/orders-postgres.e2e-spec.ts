@@ -44,7 +44,7 @@ describe('Orders (Postgres adapter e2e)', () => {
     // require (not a static import) so this file's first load of AppModule
     // only happens after PERSISTENCE_PROVIDER/DATABASE_URL are set, letting
     // OrdersModule pick up the Postgres branch instead of the in-memory one.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { AppModule } =
       require('@/app.module') as typeof import('@/app.module');
 

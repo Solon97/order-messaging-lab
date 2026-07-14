@@ -4,23 +4,23 @@ import { OrderEntity } from './order.entity';
 @Entity('order_items')
 export class OrderItemEntity {
   @PrimaryColumn('uuid')
-  orderItemId: string;
+  orderItemId!: string;
 
   @Column('uuid')
-  orderId: string;
+  orderId!: string;
 
   @Column('varchar')
-  sku: string;
+  sku!: string;
 
   @Column('int')
-  quantity: number;
+  quantity!: number;
 
   @Column('numeric', { precision: 12, scale: 2 })
-  unitPrice: string;
+  unitPrice!: string;
 
   @ManyToOne(() => OrderEntity, (order) => order.items, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'orderId' })
-  order: OrderEntity;
+  order!: OrderEntity;
 }

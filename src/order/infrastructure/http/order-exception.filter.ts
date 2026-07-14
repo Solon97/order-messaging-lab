@@ -19,17 +19,16 @@ export class OrderExceptionFilter implements ExceptionFilter {
     }
 
     if (exception instanceof DomainError) {
-      response
-        .status(HttpStatus.BAD_REQUEST)
-        .json({ statusCode: HttpStatus.BAD_REQUEST, message: exception.message });
+      response.status(HttpStatus.BAD_REQUEST).json({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: exception.message,
+      });
       return;
     }
 
-    response
-      .status(HttpStatus.INTERNAL_SERVER_ERROR)
-      .json({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Internal server error',
-      });
+    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: 'Internal server error',
+    });
   }
 }
