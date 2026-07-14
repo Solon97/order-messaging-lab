@@ -2,8 +2,8 @@ import {
   ArgumentsHost,
   Catch,
   ExceptionFilter,
+  HttpException,
   HttpStatus,
-  NotFoundException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { DomainError } from '@/shared/errors/domain-error';
@@ -13,8 +13,8 @@ export class OrderExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
 
-    if (exception instanceof NotFoundException) {
-      response.status(HttpStatus.NOT_FOUND).json(exception.getResponse());
+    if (exception instanceof HttpException) {
+      response.status(exception.getStatus()).json(exception.getResponse());
       return;
     }
 

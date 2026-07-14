@@ -3,8 +3,10 @@ import { CreateOrderUseCase } from './application/create-order.use-case';
 import { GetOrderUseCase } from './application/get-order.use-case';
 import { ORDER_REPOSITORY } from './application/order-repository.token';
 import { InMemoryOrderRepository } from './infrastructure/persistence/in-memory-order.repository';
+import { OrdersController } from './infrastructure/http/orders.controller';
 
 @Module({
+  controllers: [OrdersController],
   providers: [
     CreateOrderUseCase,
     GetOrderUseCase,
