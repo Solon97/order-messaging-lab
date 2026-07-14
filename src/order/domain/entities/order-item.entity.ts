@@ -1,5 +1,5 @@
-import { randomUUID } from 'crypto';
 import { Either, left, right } from '@/shared/either';
+import { UniqueEntityId } from '@/shared/unique-entity-id';
 import { Money } from '../value-objects/money.vo';
 import { InvalidOrderItemError } from '../errors/invalid-order-item.error';
 
@@ -18,7 +18,7 @@ export interface OrderItemPersistedProps {
 
 export class OrderItem {
   private constructor(
-    private readonly _orderItemId: string,
+    private readonly _orderItemId: UniqueEntityId,
     private readonly _sku: string,
     private readonly _quantity: number,
     private readonly _unitPrice: Money,
@@ -41,7 +41,7 @@ export class OrderItem {
 
     return right(
       new OrderItem(
-        randomUUID(),
+        UniqueEntityId.create(),
         props.sku,
         props.quantity,
         Money.fromNumber(props.unitPrice),
@@ -52,7 +52,7 @@ export class OrderItem {
   /** Rebuilds an already-valid OrderItem from persisted data, bypassing creation validation. */
   static reconstitute(props: OrderItemPersistedProps): OrderItem {
     return new OrderItem(
-      props.orderItemId,
+      UniqueEntityId.of(props.orderItemId),
       props.sku,
       props.quantity,
       props.unitPrice,
@@ -60,7 +60,7 @@ export class OrderItem {
   }
 
   get orderItemId(): string {
-    return this._orderItemId;
+    return this._orderItemId.toValue();
   }
 
   get sku(): string {
