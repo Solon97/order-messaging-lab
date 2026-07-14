@@ -14,7 +14,10 @@ function roundHalfToEvenToCents(value: number): number {
   const firstRemainderDigit = parseInt(remainder[0] ?? '0', 10);
   const restRemainder = remainder.slice(1).replace(/0+$/, '');
 
-  if (firstRemainderDigit > 5 || (firstRemainderDigit === 5 && restRemainder.length > 0)) {
+  if (
+    firstRemainderDigit > 5 ||
+    (firstRemainderDigit === 5 && restRemainder.length > 0)
+  ) {
     cents += 1;
   } else if (firstRemainderDigit === 5 && restRemainder.length === 0) {
     if (cents % 2 !== 0) {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
-import { Money } from './money.vo';
-import { InvalidOrderItemError } from './errors/invalid-order-item.error';
+import { Money } from '../value-objects/money.vo';
+import { InvalidOrderItemError } from '../errors/invalid-order-item.error';
 
 export interface OrderItemProps {
   sku: string;
@@ -27,7 +27,12 @@ export class OrderItem {
       throw new InvalidOrderItemError('unitPrice must not be negative');
     }
 
-    return new OrderItem(randomUUID(), props.sku, props.quantity, Money.fromNumber(props.unitPrice));
+    return new OrderItem(
+      randomUUID(),
+      props.sku,
+      props.quantity,
+      Money.fromNumber(props.unitPrice),
+    );
   }
 
   get orderItemId(): string {

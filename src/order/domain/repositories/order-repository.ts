@@ -1,4 +1,4 @@
-import { Order } from './order.aggregate';
+import { Order } from '../entities/order.aggregate';
 
 export interface OrderRepository {
   save(order: Order): Promise<void>;

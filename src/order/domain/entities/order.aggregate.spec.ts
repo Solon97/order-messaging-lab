@@ -1,12 +1,14 @@
 import { Order } from './order.aggregate';
-import { OrderStatus } from './order-status.vo';
-import { EmptyOrderError } from './errors/empty-order.error';
-import { InvalidOrderItemError } from './errors/invalid-order-item.error';
+import { OrderStatus } from '../value-objects/order-status.vo';
+import { EmptyOrderError } from '../errors/empty-order.error';
+import { InvalidOrderItemError } from '../errors/invalid-order-item.error';
 
 describe('Order', () => {
   describe('create', () => {
     it('throws EmptyOrderError when items is empty', () => {
-      expect(() => Order.create({ customerId: 'customer-1', items: [] })).toThrow(EmptyOrderError);
+      expect(() =>
+        Order.create({ customerId: 'customer-1', items: [] }),
+      ).toThrow(EmptyOrderError);
     });
 
     it('computes totalAmount as the sum of quantity * unitPrice across all items', () => {

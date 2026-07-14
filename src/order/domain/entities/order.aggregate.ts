@@ -1,8 +1,8 @@
 import { randomUUID } from 'crypto';
-import { Money } from './money.vo';
-import { OrderStatus } from './order-status.vo';
+import { Money } from '../value-objects/money.vo';
+import { OrderStatus } from '../value-objects/order-status.vo';
 import { OrderItem, OrderItemProps } from './order-item.entity';
-import { EmptyOrderError } from './errors/empty-order.error';
+import { EmptyOrderError } from '../errors/empty-order.error';
 
 export interface CreateOrderProps {
   customerId: string;
@@ -30,7 +30,14 @@ export class Order {
       Money.fromNumber(0),
     );
 
-    return new Order(randomUUID(), props.customerId, items, OrderStatus.CREATED, totalAmount, new Date());
+    return new Order(
+      randomUUID(),
+      props.customerId,
+      items,
+      OrderStatus.CREATED,
+      totalAmount,
+      new Date(),
+    );
   }
 
   get orderId(): string {
