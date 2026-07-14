@@ -67,7 +67,7 @@ T10 → T11 → T12 → T13 -> T14
 T15 → T16
 ```
 
-### Phase 5: Postgres Adapter (P2)
+### Phase 5: Postgres Adapter (P2) ✅ Complete
 
 ```
 T17 → T18 → T19 → T20 → T21 → T22
@@ -462,7 +462,7 @@ T17 → T18 → T19 → T20 → T21 → T22
 
 ---
 
-### T17: Add TypeORM entities for the `order` schema
+### T17: Add TypeORM entities for the `order` schema ✅ Done
 
 **What**: Add `typeorm`, `@nestjs/typeorm`, `pg` dependencies; implement `OrderEntity` and `OrderItemEntity` per design's Data Models section (`numeric(12,2)` columns, `OneToMany`/`ManyToOne` relation, `cascade`/`eager` on the parent side).
 **Where**: `src/order/infrastructure/persistence/typeorm/order.entity.ts`, `src/order/infrastructure/persistence/typeorm/order-item.entity.ts`
@@ -475,16 +475,16 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `OrderEntity`/`OrderItemEntity` match the design's column types exactly (`numeric(12,2)` for money columns, `uuid` PKs, `timestamptz` for `createdAt`)
-- [ ] Relation configured with cascade insert from `OrderEntity` → `OrderItemEntity`
-- [ ] Gate check passes: `npm run build`
+- [x] `OrderEntity`/`OrderItemEntity` match the design's column types exactly (`numeric(12,2)` for money columns, `uuid` PKs, `timestamptz` for `createdAt`)
+- [x] Relation configured with cascade insert from `OrderEntity` → `OrderItemEntity`
+- [x] Gate check passes: `npm run build`
 
 **Tests**: none (matrix: Entity/config → none; correctness verified via mapper unit tests in T18 and integration tests in T22)
 **Gate**: build
 
 ---
 
-### T18: Implement domain ↔ TypeORM entity mapper
+### T18: Implement domain ↔ TypeORM entity mapper ✅ Done
 
 **What**: Implement bidirectional mapper converting `Order`/`OrderItem` (domain, `Money` in cents) ↔ `OrderEntity`/`OrderItemEntity` (ORM, `numeric` as string), per AD-004 (never expose raw `numeric` string to domain, never expose `Money`/cents to the ORM layer).
 **Where**: `src/order/infrastructure/persistence/typeorm/order.mapper.ts`, `src/order/infrastructure/persistence/typeorm/order.mapper.spec.ts`
@@ -497,17 +497,20 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `toEntity(order: Order): OrderEntity` and `toDomain(entity: OrderEntity): Order` implemented, round-tripping every field including nested items
-- [ ] Money round-trips exactly (no precision loss) across `Money` (cents) → `numeric` string → `Money` (cents)
-- [ ] Gate check passes: `npm test -- order.mapper`
-- [ ] Test count: ≥ 3 tests pass (toEntity field mapping, toDomain field mapping, round-trip precision for a fractional-cents-risk value)
+- [x] `toEntity(order: Order): OrderEntity` and `toDomain(entity: OrderEntity): Order` implemented, round-tripping every field including nested items
+- [x] Money round-trips exactly (no precision loss) across `Money` (cents) → `numeric` string → `Money` (cents)
+- [x] Gate check passes: `npm test -- order.mapper`
+- [x] Test count: ≥ 3 tests pass (toEntity field mapping, toDomain field mapping, round-trip precision for a fractional-cents-risk value) — 3 tests
+
+**SPEC_DEVIATION**: `Order`/`OrderItem` gained a `reconstitute` static factory (bypassing creation validation) and `Money` gained `fromCents`/`toCents`, beyond the mapper file listed in this task's "Where".
+**Reason**: `Order.create`/`OrderItem.create` regenerate `orderId`/`orderItemId` and re-run validation — there was no existing way to rebuild a domain aggregate from persisted data while preserving its original identity/createdAt, which the mapper's `toDomain` requires. `Money.fromNumber` also re-rounds from a float, which risks precision loss on round-trip; `fromCents`/`toCents` move exact integer cents without any float arithmetic.
 
 **Tests**: unit
 **Gate**: quick
 
 ---
 
-### T19: Implement `TypeOrmOrderRepository` adapter
+### T19: Implement `TypeOrmOrderRepository` adapter ✅ Done
 
 **What**: Implement `OrderRepository` using TypeORM's `Repository<OrderEntity>`, via the mapper from T18.
 **Where**: `src/order/infrastructure/persistence/typeorm/typeorm-order.repository.ts`
@@ -520,15 +523,15 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `save`/`findById` implemented against the injected TypeORM `Repository<OrderEntity>`, delegating conversion to the mapper
-- [ ] Gate check passes: `npm run build`
+- [x] `save`/`findById` implemented against the injected TypeORM `Repository<OrderEntity>`, delegating conversion to the mapper
+- [x] Gate check passes: `npm run build`
 
 **Tests**: none at this task (exercised by T22's integration suite against real Postgres — merge-forward per Tasks process, since a real DB connection is required to test meaningfully)
 **Gate**: build
 
 ---
 
-### T20: Add initial Postgres migration
+### T20: Add initial Postgres migration ✅ Done
 
 **What**: Generate/write the initial TypeORM migration creating `orders` and `order_items` tables matching the entities from T17 (AD-003: explicit migration, no `synchronize: true`).
 **Where**: `src/order/infrastructure/persistence/typeorm/migrations/<timestamp>-init-order-schema.ts`, TypeORM CLI datasource config (e.g. `src/order/infrastructure/persistence/typeorm/data-source.ts`)
@@ -541,16 +544,16 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] Migration creates `orders` and `order_items` tables with matching columns/types/FK (`ON DELETE CASCADE`)
-- [ ] `synchronize` is `false` in the TypeORM datasource config used by this migration and by the app's Postgres connection
-- [ ] Gate check passes: `npm run build`
+- [x] Migration creates `orders` and `order_items` tables with matching columns/types/FK (`ON DELETE CASCADE`)
+- [x] `synchronize` is `false` in the TypeORM datasource config used by this migration and by the app's Postgres connection
+- [x] Gate check passes: `npm run build`
 
 **Tests**: none (schema migration; correctness verified by T22 running the app against it)
 **Gate**: build
 
 ---
 
-### T21: Wire `PERSISTENCE_PROVIDER=POSTGRES` branch into `OrdersModule`
+### T21: Wire `PERSISTENCE_PROVIDER=POSTGRES` branch into `OrdersModule` ✅ Done
 
 **What**: Extend the `useFactory` from T12 to bind `ORDER_REPOSITORY` to `TypeOrmOrderRepository` when `PERSISTENCE_PROVIDER=POSTGRES`, registering `TypeOrmModule.forFeature([OrderEntity, OrderItemEntity])` and the Postgres `TypeOrmModule.forRootAsync` connection (reading `DATABASE_URL` or equivalent env vars) conditionally.
 **Where**: `src/order/order.module.ts` (modify)
@@ -563,17 +566,17 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `PERSISTENCE_PROVIDER=IN_MEMORY` (or unset) still binds `InMemoryOrderRepository` — no regression (re-run T13's e2e suite)
-- [ ] `PERSISTENCE_PROVIDER=POSTGRES` binds `TypeOrmOrderRepository`, connecting via env-configured `DataSource`
-- [ ] Gate check passes: `npm test && npm run test:e2e` (in-memory path, default env)
-- [ ] Gate check passes: `npm run build`
+- [x] `PERSISTENCE_PROVIDER=IN_MEMORY` (or unset) still binds `InMemoryOrderRepository` — no regression (re-run T13's e2e suite)
+- [x] `PERSISTENCE_PROVIDER=POSTGRES` binds `TypeOrmOrderRepository`, connecting via env-configured `DataSource`
+- [x] Gate check passes: `npm test && npm run test:e2e` (in-memory path, default env)
+- [x] Gate check passes: `npm run build`
 
 **Tests**: none additional (in-memory regression covered by existing T13 suite; Postgres path covered by T22)
 **Gate**: full
 
 ---
 
-### T22: Integration tests for the Postgres adapter (Testcontainers)
+### T22: Integration tests for the Postgres adapter (Testcontainers) ✅ Done
 
 **What**: Add `@testcontainers/postgresql` (or equivalent) as a dev dependency; write an integration/e2e suite that boots a real Postgres container, runs the T20 migration, sets `PERSISTENCE_PROVIDER=POSTGRES`, and re-runs the same acceptance assertions as T13's `POST /orders`/`GET /orders/:id` suite against this adapter.
 **Where**: `test/orders-postgres.e2e-spec.ts`
@@ -586,11 +589,14 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] Testcontainers spins up a disposable Postgres instance for the suite
-- [ ] Migration from T20 runs against it before tests execute
-- [ ] `POST /orders` + `GET /orders/:id` acceptance assertions from T13 pass identically against the Postgres-backed app instance
-- [ ] Gate check passes: `npm run test:e2e -- orders-postgres`
-- [ ] Test count: ≥ 5 tests pass (parity subset of T13: create success, one validation 400 case, get success, get 404, get invalid id 400) — full parity with T13's 9 is preferred if time allows, 5 is the floor for "same acceptance suite" per spec's Independent Test
+- [x] Testcontainers spins up a disposable Postgres instance for the suite
+- [x] Migration from T20 runs against it before tests execute
+- [x] `POST /orders` + `GET /orders/:id` acceptance assertions from T13 pass identically against the Postgres-backed app instance
+- [x] Gate check passes: `npm run test:e2e -- orders-postgres`
+- [x] Test count: ≥ 5 tests pass (parity subset of T13: create success, one validation 400 case, get success, get 404, get invalid id 400) — 5 tests (the floor, not full T13 parity)
+
+**SPEC_DEVIATION**: the suite loads `AppModule` via `require()` inside `beforeAll` (after setting `PERSISTENCE_PROVIDER`/`DATABASE_URL`) instead of a static top-level `import`.
+**Reason**: `OrdersModule`'s Postgres-vs-in-memory branch is decided by a module-load-time `process.env` read (T21); a static import would resolve before the container's dynamic connection string is known. `jest.resetModules()` was tried first but caused duplicate class instances that broke Nest's DI (`TypeOrmCoreModule` couldn't resolve `ModuleRef`); a plain `require()` (this file's first load of `AppModule`, no static import elsewhere in the file) avoided that without needing a module reset.
 
 **Tests**: integration
 **Gate**: full
