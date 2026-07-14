@@ -101,7 +101,9 @@ describe('OrderMapper', () => {
       const roundTripped = OrderMapper.toDomain(entity);
 
       expect(entity.items[0].unitPrice).toBe('0.10');
-      expect(roundTripped.totalAmount.amount).toBe(order.value.totalAmount.amount);
+      expect(roundTripped.totalAmount.amount).toBe(
+        order.value.totalAmount.amount,
+      );
       expect(roundTripped.items[0].unitPrice.amount).toBe(
         order.value.items[0].unitPrice.amount,
       );

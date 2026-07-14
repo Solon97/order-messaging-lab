@@ -18,7 +18,10 @@ function centsToNumeric(cents: number): string {
 function numericToCents(value: string): number {
   const sign = value.startsWith('-') ? -1 : 1;
   const [integerPart, fractionPart = ''] = value.replace('-', '').split('.');
-  const cents = parseInt(integerPart + fractionPart.padEnd(2, '0').slice(0, 2), 10);
+  const cents = parseInt(
+    integerPart + fractionPart.padEnd(2, '0').slice(0, 2),
+    10,
+  );
   return sign * cents;
 }
 
