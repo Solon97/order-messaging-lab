@@ -43,7 +43,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 Phases are ordered and run sequentially — each phase completes before the next begins, and tasks within a phase execute in order.
 
-### Phase 1: Domain Foundation
+### Phase 1: Domain Foundation ✅ Complete
 
 ```
 T1 → T2 → T3 → T4 → T5 → T6
@@ -83,10 +83,10 @@ T17 → T18 → T19 → T20 → T21 → T22
 
 ## Task Breakdown
 
-### T1: Create `Money` value object
+### T1: Create `Money` value object ✅ Done
 
 **What**: Implement `Money` VO with internal cents-integer representation, `fromNumber`, `add`, `multiply`, `amount` getter, `equals`; banker's rounding on normalization to 2 decimals (per spec edge case + AD-004).
-**Where**: `src/order/domain/money.vo.ts`
+**Where**: `src/order/domain/value-objects/money.vo.ts` (moved from `src/order/domain/money.vo.ts` in a later reorg)
 **Depends on**: None
 **Reuses**: nothing (new subdomain)
 **Requirement**: ORD0-04 (AC2), edge case (precisão monetária)
@@ -96,21 +96,21 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `Money.fromNumber`, `add`, `multiply`, `amount`, `equals` implemented per design interface
-- [ ] Internal representation is integer cents, never raw float arithmetic
-- [ ] Normalization uses banker's rounding (half-to-even) to 2 decimals
-- [ ] Gate check passes: `npm test -- money.vo`
-- [ ] Test count: ≥ 6 tests pass (fromNumber normalization incl. `0.1+0.2`-style cases, add, multiply, equals, rounding edge cases)
+- [x] `Money.fromNumber`, `add`, `multiply`, `amount`, `equals` implemented per design interface
+- [x] Internal representation is integer cents, never raw float arithmetic
+- [x] Normalization uses banker's rounding (half-to-even) to 2 decimals
+- [x] Gate check passes: `npm test -- money.vo`
+- [x] Test count: ≥ 6 tests pass (fromNumber normalization incl. `0.1+0.2`-style cases, add, multiply, equals, rounding edge cases) — 9 tests
 
 **Tests**: unit
 **Gate**: quick
 
 ---
 
-### T2: Create `OrderStatus` value object
+### T2: Create `OrderStatus` value object ✅ Done
 
 **What**: Implement `OrderStatus` enum with `CREATED` member (Fase 1 states reserved as comment, not implemented).
-**Where**: `src/order/domain/order-status.vo.ts`
+**Where**: `src/order/domain/value-objects/order-status.vo.ts` (moved from `src/order/domain/order-status.vo.ts` in a later reorg)
 **Depends on**: None
 **Reuses**: nothing
 **Requirement**: ORD0-04 (AC4)
@@ -120,18 +120,18 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `OrderStatus.CREATED` exported and usable as a TS type
-- [ ] Gate check passes: `npm run build`
+- [x] `OrderStatus.CREATED` exported and usable as a TS type
+- [x] Gate check passes: `npm run build`
 
 **Tests**: none (trivial enum, matrix: Entity/config → none)
 **Gate**: build
 
 ---
 
-### T3: Create domain error hierarchy
+### T3: Create domain error hierarchy ✅ Done
 
 **What**: Implement `DomainError` base class and `EmptyOrderError`, `InvalidOrderItemError` subclasses (plain `Error` subclasses, distinguishable via `instanceof`/`name`).
-**Where**: `src/order/domain/errors/domain-error.ts`, `src/order/domain/errors/empty-order.error.ts`, `src/order/domain/errors/invalid-order-item.error.ts`
+**Where**: `src/shared/errors/domain-error.ts` (moved out of `order/domain/errors/` in a later reorg — shared across subdomains), `src/order/domain/errors/empty-order.error.ts`, `src/order/domain/errors/invalid-order-item.error.ts`
 **Depends on**: None
 **Reuses**: nothing
 **Requirement**: ORD0-04 (AC1, AC3)
@@ -141,19 +141,19 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `DomainError extends Error`; both subclasses extend `DomainError`
-- [ ] `instanceof DomainError` is true for both subclasses
-- [ ] Gate check passes: `npm run build`
+- [x] `DomainError extends Error`; both subclasses extend `DomainError`
+- [x] `instanceof DomainError` is true for both subclasses
+- [x] Gate check passes: `npm run build`
 
 **Tests**: none (matrix: trivial error classes, no branching logic → build gate only)
 **Gate**: build
 
 ---
 
-### T4: Create `OrderItem` entity
+### T4: Create `OrderItem` entity ✅ Done
 
 **What**: Implement `OrderItem.create` factory validating `sku` non-empty, `quantity > 0`, `unitPrice >= 0`; assigns `orderItemId` via `crypto.randomUUID()` (AD-005); throws `InvalidOrderItemError` on violation.
-**Where**: `src/order/domain/order-item.entity.ts`, `src/order/domain/order-item.entity.spec.ts`
+**Where**: `src/order/domain/entities/order-item.entity.ts`, `src/order/domain/entities/order-item.entity.spec.ts` (moved from `src/order/domain/` in a later reorg)
 **Depends on**: T1 (Money), T3 (InvalidOrderItemError)
 **Reuses**: `Money`, `InvalidOrderItemError`
 **Requirement**: ORD0-04 (AC3, AC4)
@@ -163,21 +163,21 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `OrderItem.create` implemented per design interface (`sku`, `quantity`, `unitPrice` getters + `orderItemId`)
-- [ ] Throws `InvalidOrderItemError` for empty/missing `sku`, `quantity <= 0`, `unitPrice < 0`
-- [ ] Two items with identical `sku`/`quantity`/`unitPrice` get distinct `orderItemId`s
-- [ ] Gate check passes: `npm test -- order-item.entity`
-- [ ] Test count: ≥ 6 tests pass (valid creation, empty sku, missing sku, quantity <= 0, unitPrice < 0, distinct ids)
+- [x] `OrderItem.create` implemented per design interface (`sku`, `quantity`, `unitPrice` getters + `orderItemId`)
+- [x] Throws `InvalidOrderItemError` for empty/missing `sku`, `quantity <= 0`, `unitPrice < 0`
+- [x] Two items with identical `sku`/`quantity`/`unitPrice` get distinct `orderItemId`s
+- [x] Gate check passes: `npm test -- order-item.entity`
+- [x] Test count: ≥ 6 tests pass (valid creation, empty sku, missing sku, quantity <= 0, unitPrice < 0, distinct ids) — 6 tests
 
 **Tests**: unit
 **Gate**: quick
 
 ---
 
-### T5: Create `Order` aggregate root
+### T5: Create `Order` aggregate root ✅ Done
 
 **What**: Implement `Order.create` factory: rejects empty `items` (`EmptyOrderError`), builds `OrderItem`s, computes `totalAmount` as `Money` sum of `quantity * unitPrice` per item, sets `status = OrderStatus.CREATED`, assigns `orderId` via `crypto.randomUUID()`.
-**Where**: `src/order/domain/order.aggregate.ts`, `src/order/domain/order.aggregate.spec.ts`
+**Where**: `src/order/domain/entities/order.aggregate.ts`, `src/order/domain/entities/order.aggregate.spec.ts` (moved from `src/order/domain/` in a later reorg)
 **Depends on**: T1 (Money), T2 (OrderStatus), T3 (EmptyOrderError), T4 (OrderItem)
 **Reuses**: `Money`, `OrderStatus`, `EmptyOrderError`, `OrderItem`
 **Requirement**: ORD0-04 (AC1, AC2, AC4)
@@ -187,23 +187,23 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `Order.create` implemented per design interface (`orderId`, `customerId`, `items`, `status`, `totalAmount`, `createdAt` getters)
-- [ ] Throws `EmptyOrderError` when `items` is empty
-- [ ] `totalAmount` is a `Money` instance summing `quantity * unitPrice` across all items correctly
-- [ ] `status` is `OrderStatus.CREATED` on successful creation
-- [ ] Item-level invalid data propagates as `InvalidOrderItemError` (no swallowing)
-- [ ] Gate check passes: `npm test -- order.aggregate`
-- [ ] Test count: ≥ 6 tests pass (empty items rejected, correct total for multiple items, status is CREATED, invalid item propagates, distinct orderIds across two orders)
+- [x] `Order.create` implemented per design interface (`orderId`, `customerId`, `items`, `status`, `totalAmount`, `createdAt` getters)
+- [x] Throws `EmptyOrderError` when `items` is empty
+- [x] `totalAmount` is a `Money` instance summing `quantity * unitPrice` across all items correctly
+- [x] `status` is `OrderStatus.CREATED` on successful creation
+- [x] Item-level invalid data propagates as `InvalidOrderItemError` (no swallowing)
+- [x] Gate check passes: `npm test -- order.aggregate`
+- [x] Test count: ≥ 6 tests pass (empty items rejected, correct total for multiple items, status is CREATED, invalid item propagates, distinct orderIds across two orders) — 6 tests
 
 **Tests**: unit
 **Gate**: quick
 
 ---
 
-### T6: Create `OrderRepository` port + domain coverage threshold
+### T6: Create `OrderRepository` port + domain coverage threshold ✅ Done
 
 **What**: Define the `OrderRepository` interface (`save`, `findById`) in the domain layer; configure Jest `coverageThreshold` scoped to `src/order/domain/` at 80% (statements/branches/functions/lines) in `package.json`, per spec Success Criteria.
-**Where**: `src/order/domain/order-repository.port.ts`, `package.json` (jest config)
+**Where**: `src/order/domain/repositories/order-repository.ts` (moved from `src/order/domain/order-repository.port.ts` in a later reorg), `package.json` (jest config)
 **Depends on**: T5 (Order)
 **Reuses**: `Order`
 **Requirement**: ORD0-04, ORD0-05 (port definition), spec Success Criteria (80% domain coverage)
@@ -213,10 +213,10 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `OrderRepository` interface exported with `save(order: Order): Promise<void>` and `findById(orderId: string): Promise<Order | null>`
-- [ ] `jest.coverageThreshold` added scoped to `src/order/domain/**/*.ts` at 80%
-- [ ] Gate check passes: `npm run test:cov` reports ≥ 80% for `src/order/domain/`
-- [ ] Gate check passes: `npm run build`
+- [x] `OrderRepository` interface exported with `save(order: Order): Promise<void>` and `findById(orderId: string): Promise<Order | null>`
+- [x] `jest.coverageThreshold` added scoped to `src/order/domain/**/*.ts` at 80%
+- [x] Gate check passes: `npm run test:cov` reports ≥ 80% for `src/order/domain/`
+- [x] Gate check passes: `npm run build`
 
 **Tests**: none (interface + config; matrix: Entity/config → none, verified via build + coverage gate)
 **Gate**: build
