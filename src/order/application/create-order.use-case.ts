@@ -14,7 +14,11 @@ export class CreateOrderUseCase {
   ) {}
 
   async execute(input: CreateOrderProps): Promise<Order> {
-    const order = Order.create(input);
+    const result = Order.create(input);
+    if (result.isLeft()) {
+      throw result.value;
+    }
+    const order = result.value;
     await this.orderRepository.save(order);
     return order;
   }
