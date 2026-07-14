@@ -29,9 +29,7 @@ export class OrderItem {
       );
     }
     if (props.unitPrice < 0) {
-      return left(
-        new InvalidOrderItemError('unitPrice must not be negative'),
-      );
+      return left(new InvalidOrderItemError('unitPrice must not be negative'));
     }
 
     return right(
