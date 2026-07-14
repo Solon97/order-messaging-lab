@@ -5,14 +5,17 @@ import { InvalidOrderItemError } from '../errors/invalid-order-item.error';
 
 describe('Order', () => {
   describe('create', () => {
-    it('throws EmptyOrderError when items is empty', () => {
-      expect(() =>
-        Order.create({ customerId: 'customer-1', items: [] }),
-      ).toThrow(EmptyOrderError);
+    it('returns left with EmptyOrderError when items is empty', () => {
+      const result = Order.create({ customerId: 'customer-1', items: [] });
+
+      if (!result.isLeft()) {
+        throw new Error('expected left');
+      }
+      expect(result.value).toBeInstanceOf(EmptyOrderError);
     });
 
     it('computes totalAmount as the sum of quantity * unitPrice across all items', () => {
-      const order = Order.create({
+      const result = Order.create({
         customerId: 'customer-1',
         items: [
           { sku: 'SKU-1', quantity: 2, unitPrice: 10.5 },
@@ -20,12 +23,15 @@ describe('Order', () => {
         ],
       });
 
+      if (!result.isRight()) {
+        throw new Error('expected right');
+      }
       // 2 * 10.5 + 3 * 5.25 = 21 + 15.75 = 36.75
-      expect(order.totalAmount.amount).toBe(36.75);
+      expect(result.value.totalAmount.amount).toBe(36.75);
     });
 
     it('builds an OrderItem for each input item, preserving sku and quantity', () => {
-      const order = Order.create({
+      const result = Order.create({
         customerId: 'customer-1',
         items: [
           { sku: 'SKU-1', quantity: 2, unitPrice: 10.5 },
@@ -33,29 +39,38 @@ describe('Order', () => {
         ],
       });
 
-      expect(order.items).toHaveLength(2);
-      expect(order.items[0].sku).toBe('SKU-1');
-      expect(order.items[0].quantity).toBe(2);
-      expect(order.items[1].sku).toBe('SKU-2');
-      expect(order.items[1].quantity).toBe(3);
+      if (!result.isRight()) {
+        throw new Error('expected right');
+      }
+      expect(result.value.items).toHaveLength(2);
+      expect(result.value.items[0].sku).toBe('SKU-1');
+      expect(result.value.items[0].quantity).toBe(2);
+      expect(result.value.items[1].sku).toBe('SKU-2');
+      expect(result.value.items[1].quantity).toBe(3);
     });
 
     it('sets status to CREATED on successful creation', () => {
-      const order = Order.create({
+      const result = Order.create({
         customerId: 'customer-1',
         items: [{ sku: 'SKU-1', quantity: 1, unitPrice: 1 }],
       });
 
-      expect(order.status).toBe(OrderStatus.CREATED);
+      if (!result.isRight()) {
+        throw new Error('expected right');
+      }
+      expect(result.value.status).toBe(OrderStatus.CREATED);
     });
 
-    it('propagates InvalidOrderItemError when an item has invalid data', () => {
-      expect(() =>
-        Order.create({
-          customerId: 'customer-1',
-          items: [{ sku: 'SKU-1', quantity: -1, unitPrice: 1 }],
-        }),
-      ).toThrow(InvalidOrderItemError);
+    it('returns left with InvalidOrderItemError when an item has invalid data', () => {
+      const result = Order.create({
+        customerId: 'customer-1',
+        items: [{ sku: 'SKU-1', quantity: -1, unitPrice: 1 }],
+      });
+
+      if (!result.isLeft()) {
+        throw new Error('expected left');
+      }
+      expect(result.value).toBeInstanceOf(InvalidOrderItemError);
     });
 
     it('assigns distinct orderIds across two orders', () => {
@@ -68,7 +83,10 @@ describe('Order', () => {
         items: [{ sku: 'SKU-1', quantity: 1, unitPrice: 1 }],
       });
 
-      expect(first.orderId).not.toBe(second.orderId);
+      if (!first.isRight() || !second.isRight()) {
+        throw new Error('expected right');
+      }
+      expect(first.value.orderId).not.toBe(second.value.orderId);
     });
   });
 });

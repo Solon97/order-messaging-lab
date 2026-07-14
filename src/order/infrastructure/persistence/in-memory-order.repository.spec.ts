@@ -2,10 +2,14 @@ import { InMemoryOrderRepository } from './in-memory-order.repository';
 import { Order } from '@/order/domain/entities/order.aggregate';
 
 function createOrder(customerId: string): Order {
-  return Order.create({
+  const result = Order.create({
     customerId,
     items: [{ sku: 'SKU-1', quantity: 1, unitPrice: 10 }],
   });
+  if (!result.isRight()) {
+    throw new Error('expected right');
+  }
+  return result.value;
 }
 
 describe('InMemoryOrderRepository', () => {

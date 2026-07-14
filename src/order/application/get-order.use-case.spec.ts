@@ -5,10 +5,14 @@ import { Order } from '@/order/domain/entities/order.aggregate';
 describe('GetOrderUseCase', () => {
   it('returns the order when found', async () => {
     const repository = new InMemoryOrderRepository();
-    const order = Order.create({
+    const orderResult = Order.create({
       customerId: 'customer-1',
       items: [{ sku: 'SKU-1', quantity: 1, unitPrice: 10 }],
     });
+    if (!orderResult.isRight()) {
+      throw new Error('expected right');
+    }
+    const order = orderResult.value;
     await repository.save(order);
     const useCase = new GetOrderUseCase(repository);
 

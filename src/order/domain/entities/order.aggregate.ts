@@ -1,8 +1,10 @@
 import { randomUUID } from 'crypto';
+import { Either, left, right } from '@/shared/either';
 import { Money } from '../value-objects/money.vo';
 import { OrderStatus } from '../value-objects/order-status.vo';
 import { OrderItem, OrderItemProps } from './order-item.entity';
 import { EmptyOrderError } from '../errors/empty-order.error';
+import { InvalidOrderItemError } from '../errors/invalid-order-item.error';
 
 export interface CreateOrderProps {
   customerId: string;
@@ -19,24 +21,36 @@ export class Order {
     private readonly _createdAt: Date,
   ) {}
 
-  static create(props: CreateOrderProps): Order {
+  static create(
+    props: CreateOrderProps,
+  ): Either<EmptyOrderError | InvalidOrderItemError, Order> {
     if (props.items.length === 0) {
-      throw new EmptyOrderError();
+      return left(new EmptyOrderError());
     }
 
-    const items = props.items.map((item) => OrderItem.create(item));
+    const items: OrderItem[] = [];
+    for (const itemProps of props.items) {
+      const itemResult = OrderItem.create(itemProps);
+      if (itemResult.isLeft()) {
+        return left(itemResult.value);
+      }
+      items.push(itemResult.value);
+    }
+
     const totalAmount = items.reduce(
       (total, item) => total.add(item.unitPrice.multiply(item.quantity)),
       Money.fromNumber(0),
     );
 
-    return new Order(
-      randomUUID(),
-      props.customerId,
-      items,
-      OrderStatus.CREATED,
-      totalAmount,
-      new Date(),
+    return right(
+      new Order(
+        randomUUID(),
+        props.customerId,
+        items,
+        OrderStatus.CREATED,
+        totalAmount,
+        new Date(),
+      ),
     );
   }
 
