@@ -8,34 +8,46 @@ describe('CreateOrderUseCase', () => {
     const repository = new InMemoryOrderRepository();
     const useCase = new CreateOrderUseCase(repository);
 
-    const order = await useCase.execute({
+    const result = await useCase.execute({
       customerId: 'customer-1',
       items: [{ sku: 'SKU-1', quantity: 2, unitPrice: 10.5 }],
     });
 
-    expect(order.totalAmount.amount).toBe(21);
-    expect(await repository.findById(order.orderId)).toBe(order);
+    if (!result.isRight()) {
+      throw new Error('expected right');
+    }
+    expect(result.value.totalAmount.amount).toBe(21);
+    expect(await repository.findById(result.value.orderId)).toBe(result.value);
   });
 
-  it('propagates EmptyOrderError when items is empty', async () => {
+  it('returns left with EmptyOrderError when items is empty', async () => {
     const repository = new InMemoryOrderRepository();
     const useCase = new CreateOrderUseCase(repository);
 
-    await expect(
-      useCase.execute({ customerId: 'customer-1', items: [] }),
-    ).rejects.toThrow(EmptyOrderError);
+    const result = await useCase.execute({
+      customerId: 'customer-1',
+      items: [],
+    });
+
+    if (!result.isLeft()) {
+      throw new Error('expected left');
+    }
+    expect(result.value).toBeInstanceOf(EmptyOrderError);
   });
 
-  it('propagates InvalidOrderItemError when an item is invalid', async () => {
+  it('returns left with InvalidOrderItemError when an item is invalid', async () => {
     const repository = new InMemoryOrderRepository();
     const useCase = new CreateOrderUseCase(repository);
 
-    await expect(
-      useCase.execute({
-        customerId: 'customer-1',
-        items: [{ sku: 'SKU-1', quantity: -1, unitPrice: 10 }],
-      }),
-    ).rejects.toThrow(InvalidOrderItemError);
+    const result = await useCase.execute({
+      customerId: 'customer-1',
+      items: [{ sku: 'SKU-1', quantity: -1, unitPrice: 10 }],
+    });
+
+    if (!result.isLeft()) {
+      throw new Error('expected left');
+    }
+    expect(result.value).toBeInstanceOf(InvalidOrderItemError);
   });
 
   it('calls repository.save exactly once on success', async () => {
@@ -49,5 +61,15 @@ describe('CreateOrderUseCase', () => {
     });
 
     expect(saveSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call repository.save when creation fails', async () => {
+    const repository = new InMemoryOrderRepository();
+    const saveSpy = jest.spyOn(repository, 'save');
+    const useCase = new CreateOrderUseCase(repository);
+
+    await useCase.execute({ customerId: 'customer-1', items: [] });
+
+    expect(saveSpy).not.toHaveBeenCalled();
   });
 });

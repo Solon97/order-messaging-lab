@@ -1,8 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Either } from '@/shared/either';
 import {
   Order,
   CreateOrderProps,
 } from '@/order/domain/entities/order.aggregate';
+import { EmptyOrderError } from '@/order/domain/errors/empty-order.error';
+import { InvalidOrderItemError } from '@/order/domain/errors/invalid-order-item.error';
 import type { OrderRepository } from '@/order/domain/repositories/order-repository';
 import { ORDER_REPOSITORY } from './order-repository.token';
 
@@ -13,13 +16,14 @@ export class CreateOrderUseCase {
     private readonly orderRepository: OrderRepository,
   ) {}
 
-  async execute(input: CreateOrderProps): Promise<Order> {
+  async execute(
+    input: CreateOrderProps,
+  ): Promise<Either<EmptyOrderError | InvalidOrderItemError, Order>> {
     const result = Order.create(input);
     if (result.isLeft()) {
-      throw result.value;
+      return result;
     }
-    const order = result.value;
-    await this.orderRepository.save(order);
-    return order;
+    await this.orderRepository.save(result.value);
+    return result;
   }
 }
