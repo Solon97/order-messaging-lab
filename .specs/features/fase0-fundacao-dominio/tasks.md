@@ -61,7 +61,7 @@ T7 → T8 → T9
 T10 → T11 → T12 → T13 -> T14
 ```
 
-### Phase 4: Architecture Lint + CI (P2)
+### Phase 4: Architecture Lint + CI (P2) ✅ Complete
 
 ```
 T15 → T16
@@ -415,7 +415,7 @@ T17 → T18 → T19 → T20 → T21 → T22
 
 ---
 
-### T15: Configure `dependency-cruiser` architecture lint
+### T15: Configure `dependency-cruiser` architecture lint ✅ Done
 
 **What**: Add `dependency-cruiser` as a dev dependency; create `.dependency-cruiser.js` forbidding imports from `src/order/domain/**` or `src/order/application/**` into `src/order/infrastructure/**`, `typeorm`, `@nestjs/typeorm`, or any messaging SDK (`aws-sdk`, `@aws-sdk/*`, `amqplib`, etc. — pattern-based, forward-looking for Fase 1); add `npm run lint:arch` script.
 **Where**: `.dependency-cruiser.js` (new, root), `package.json` (add script + devDependency)
@@ -428,16 +428,19 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] `npm run lint:arch` passes with 0 violations against current codebase
-- [ ] Manual verification (per spec's Independent Test): temporarily add a forbidden import (e.g. `typeorm` import in `order.aggregate.ts`), run `npm run lint:arch`, confirm it fails with a clear message identifying the forbidden edge; remove the import, confirm it passes again
-- [ ] Gate check passes: `npm run build`
+- [x] `npm run lint:arch` passes with 0 violations against current codebase
+- [x] Manual verification (per spec's Independent Test): temporarily add a forbidden import (used `InMemoryOrderRepository` import in `order.aggregate.ts` since `typeorm` is not yet installed — added in T17), run `npm run lint:arch`, confirm it fails with a clear message identifying the forbidden edge; remove the import, confirm it passes again
+- [x] Gate check passes: `npm run build`
+
+**SPEC_DEVIATION**: infra-boundary rule excludes `*.spec.ts` from its `from` matcher.
+**Reason**: T8/T9's application-layer tests intentionally import the concrete `InMemoryOrderRepository` from infrastructure as their test double — a legitimate existing pattern, not an architecture leak.
 
 **Tests**: none (manual verification per spec's own acceptance test; no automated test harness for lint config itself)
 **Gate**: build
 
 ---
 
-### T16: Add CI workflow with blocking architecture lint step
+### T16: Add CI workflow with blocking architecture lint step ✅ Done
 
 **What**: Create a GitHub Actions workflow running on PRs: install deps, `npm run build`, `npm run lint`, `npm run lint:arch`, `npm test`, `npm run test:e2e`; `lint:arch` must be a required (non-continue-on-error) step.
 **Where**: `.github/workflows/ci.yml` (new)
@@ -450,9 +453,9 @@ T17 → T18 → T19 → T20 → T21 → T22
 - Skill: NONE
 
 **Done when**:
-- [ ] Workflow triggers on `pull_request` (and reasonably on `push` to `main`)
-- [ ] `lint:arch` step has no `continue-on-error: true` and runs before/alongside other required steps
-- [ ] Workflow YAML is valid (verified via `actionlint` if available, otherwise via GitHub Actions syntax review — no local runtime to execute this task's own gate)
+- [x] Workflow triggers on `pull_request` (and reasonably on `push` to `main`)
+- [x] `lint:arch` step has no `continue-on-error: true` and runs before/alongside other required steps
+- [x] Workflow YAML is valid (`actionlint` not available locally; verified via `python3 -c "yaml.safe_load(...)"` + manual GitHub Actions syntax review — all referenced npm scripts confirmed present in `package.json`)
 
 **Tests**: none (CI config; verified by an actual CI run once pushed — out of scope to execute locally)
 **Gate**: build (YAML syntax + script references check only)
