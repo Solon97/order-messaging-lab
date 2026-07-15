@@ -317,10 +317,10 @@ T10 → T11
 
 **Done when**:
 
-- [ ] Workflow YAML is structurally valid (`yamllint .github/workflows/deploy.yml` if available locally, else visually verified against `ci.yml`'s syntax as a baseline)
-- [ ] Both jobs use `permissions: id-token: write` (required for OIDC) and no static AWS credentials appear anywhere in the file
-- [ ] `deploy` job has `needs: build-and-push`
-- [ ] Role ARNs are read from repo variables/secrets (e.g. `${{ vars.ECR_PUSH_ROLE_ARN }}`, `${{ vars.CDK_DEPLOY_ROLE_ARN }}`), not hardcoded — documented in T11's runbook as a manual one-time setup step after the first `cdk deploy --all`
+- [x] Workflow YAML is structurally valid (validated via `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/deploy.yml'))"`, no `yamllint` available locally)
+- [x] Both jobs use `permissions: id-token: write` (required for OIDC) and no static AWS credentials appear anywhere in the file — declared once at workflow level (`permissions: contents: read, id-token: write`), applies to both jobs since neither overrides it
+- [x] `deploy` job has `needs: build-and-push`
+- [x] Role ARNs are read from repo variables/secrets (`${{ vars.ECR_PUSH_ROLE_ARN }}`, `${{ vars.CDK_DEPLOY_ROLE_ARN }}`), not hardcoded — documented in T11's runbook (`infra/README.md` § 4) as a manual one-time setup step after the first `cdk deploy --all`
 
 **Tests**: none (no YAML test tooling in repo, per Test Coverage Matrix)
 **Gate**: manual review only
