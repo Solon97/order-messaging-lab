@@ -114,8 +114,8 @@ flowchart LR
 - **Interfaces**:
   - `cluster: ICluster`
   - `service: FargateService`
-  - `targetGroup: ApplicationTargetGroup` — health check em `/health` (novo endpoint, ver componente abaixo)
 - **Dependências**: `FoundationStack` (repo + parâmetro de tag), `NetworkStack` (vpc), `DatabaseStack` (endpoint do RDS, security group)
+- **SPEC_DEVIATION (implementação, T8)**: `ApplicationTargetGroup` não é mais exportada por esta stack — passou a ser criada em `EdgeStack` (via `listener.addTargets`), que recebe `service: FargateService` em vez de `targetGroup`. Motivo: criar o target group aqui com `targets: [service]` faz o `ECS::Service` depender do listener rule da `EdgeStack`, enquanto a `EdgeStack` precisa referenciar o target group/service desta stack — ciclo de dependência real entre stacks do CDK, não uma preferência de design. Ver comentário `SPEC_DEVIATION` em `infra/lib/compute-stack.ts`. O health check em `/health` continua sendo o do target group, agora definido em `EdgeStack`.
 - **Reuses**: `circuitBreaker: { enable: true, rollback: true }`, `desiredCount` fixo (sem autoscaling, fora de escopo), `containerInsightsV2: ENABLED` — igual à referência
 - **Novo em relação à referência**: cria o `Secret` do Secrets Manager com `DATABASE_URL` (montada a partir do endpoint do RDS + credenciais geradas), injetado via `secrets` da task definition (não `environment`) — a referência só demonstrava env vars simples
 
@@ -126,9 +126,10 @@ flowchart LR
 - **Interfaces**:
   - `loadBalancer: ApplicationLoadBalancer`
   - `httpApi: HttpApi` — output: URL pública (`https://{api-id}.execute-api.{region}.amazonaws.com`)
-- **Dependências**: `ComputeStack` (target group), `NetworkStack` (vpc)
+- **Dependências**: `NetworkStack` (vpc) apenas — ver SPEC_DEVIATION (T9) abaixo sobre `ComputeStack`
 - **Reuses**: listener HTTP:80 com default action `404`, `HttpAlbIntegration` com `overwritePath` — igual à referência
 - **Desvio da referência (mitigação de risco, ver Risks & Concerns)**: ALB criado como `internal: true` explicitamente (a referência deixa implícito/`internet-facing`) — este projeto quer garantir que o serviço só seja alcançável via API Gateway, ponto que a própria referência lista como débito técnico conhecido
+- **SPEC_DEVIATION (implementação, T9)**: a direção da dependência entre `ComputeStack` e `EdgeStack` é invertida em relação ao previsto originalmente (`EdgeStack` dependendo de `ComputeStack`). Na prática, `ComputeStack` depende de `EdgeStack`: `EdgeStack` expõe `registerFargateServiceListener(config: FargateServiceListenerConfig)`, chamado por `infra/bin/app.ts` após ambas as stacks serem construídas, que anexa `ComputeStack.service` ao listener via `listener.addTargets(...)`. O `AWS::ECS::Service` subjacente ganha automaticamente uma dependência de segurança sobre o listener rule ao qual seu target group é anexado (evita a task tentar registrar no ALB antes do listener existir) — como esse recurso pertence à `ComputeStack`, o resultado observado em `cdk list`/`cdk synth` é `ComputeStack → EdgeStack`, não o inverso. Confirmado via `infra/cdk.out/manifest.json` (nenhuma dependência circular). Motivo: ver SPEC_DEVIATION de T8 acima — a alternativa (referenciar `ComputeStack` diretamente na `EdgeStack`) reintroduziria o ciclo real de dependência entre stacks do CDK.
 
 ### `HealthController` (app NestJS, novo)
 

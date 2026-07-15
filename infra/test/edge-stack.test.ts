@@ -22,8 +22,8 @@ describe('EdgeStack', () => {
   });
   const stack = new EdgeStack(app, 'TestEdgeStack', {
     vpc: networkStack.vpc,
-    service: computeStack.service,
   });
+  stack.registerFargateServiceListener(computeStack.listenerConfig);
   const template = Template.fromStack(stack);
 
   it('creates the ALB as internal, not internet-facing', () => {

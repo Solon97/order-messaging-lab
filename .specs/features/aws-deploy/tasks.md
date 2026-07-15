@@ -291,9 +291,9 @@ T10 → T11
 
 **Done when**:
 
-- [ ] `cd infra && npx cdk synth` succeeds with all 5 stacks present and zero synth errors
-- [ ] `cd infra && npx cdk list` shows the 5 stacks in the order matching `design.md`'s dependency table
-- [ ] Manually inspect `cdk synth`'s stack dependency graph (`cdk synth --all` output or `cdk deploy --all --dry-run` if available) to confirm `ComputeStack` depends on `FoundationStack`+`NetworkStack`+`DatabaseStack`, and `EdgeStack` depends on `NetworkStack`+`ComputeStack`
+- [x] `cd infra && npx cdk synth` succeeds with all 5 stacks present and zero synth errors
+- [x] `cd infra && npx cdk list` shows the 5 stacks in the order matching `design.md`'s dependency table
+- [x] Manually inspect `cdk synth`'s stack dependency graph (`infra/cdk.out/manifest.json`) to confirm `ComputeStack` depends on `FoundationStack`+`NetworkStack`+`DatabaseStack`+`EdgeStack`, and `EdgeStack` depends on `NetworkStack` only — SPEC_DEVIATION (see `design.md` → `EdgeStack`): `ComputeStack` depends on `EdgeStack`, not the reverse as originally planned, because the ECS Service's automatic safety dependency onto its target group's listener rule lives on the `ComputeStack`-owned `Service` resource; the reverse direction would create a genuine CDK stack-dependency cycle (see T8's SPEC_DEVIATION)
 
 **Tests**: none (wiring/integration of already-unit-tested stacks; correctness is synth-time, per Test Coverage Matrix)
 **Gate**: Infra-synth
@@ -400,7 +400,7 @@ Execution is strictly sequential — there is no intra-phase parallelism. A sing
 | T6 | T5 | T5 → T6 | ✅ Match |
 | T7 | T4, T5, T6 | T6 → T7 (chain includes T4, T5 transitively via the sequential phase order) | ✅ Match |
 | T8 | T5, T7 | T7 → T8 (T5 satisfied earlier in the same chain) | ✅ Match |
-| T9 | T4, T5, T6, T7, T8 | T8 → T9 (all prior stacks satisfied earlier in the same chain) | ✅ Match |
+| T9 | T4, T5, T6, T7, T8 | T8 → T9 (all prior stacks satisfied earlier in the same chain) | ⚠️ Task order matches (T9 wires all 5 stacks after T4-T8 exist), but the runtime CDK stack dependency between `ComputeStack` and `EdgeStack` is inverted vs. the original design — see SPEC_DEVIATION in `design.md` → `EdgeStack` and the `Done when` note above |
 | T10 | T2, T9 | Phase 3 → Phase 4 (T9 → T10); T2 satisfied in Phase 2, earlier | ✅ Match |
 | T11 | T9 | T10 → T11 (T9 satisfied earlier in Phase 3) | ✅ Match |
 
