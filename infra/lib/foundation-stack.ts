@@ -3,7 +3,7 @@ import { Construct } from 'constructs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
-import { serviceConfig } from './config';
+import { imageTagParameterName, serviceConfig } from './config';
 
 // SPEC_DEVIATION: the GitHub org/repo owning this codebase is not yet fixed
 // (no git remote configured at scaffold time). Update `githubOrg` before the
@@ -27,7 +27,7 @@ export class FoundationStack extends cdk.Stack {
     });
 
     this.imageTagParameter = new ssm.StringParameter(this, 'ImageTagParameter', {
-      parameterName: `/order-messaging-lab/${serviceConfig.serviceName}/image-tag`,
+      parameterName: imageTagParameterName,
       stringValue: 'latest',
     });
 

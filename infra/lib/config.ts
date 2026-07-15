@@ -17,3 +17,5 @@ export const serviceConfig: ServiceConfig = {
   memoryLimitMiB: 1024,
   desiredCount: 1,
 };
+
+export const imageTagParameterName = `/order-messaging-lab/${serviceConfig.serviceName}/image-tag`;
