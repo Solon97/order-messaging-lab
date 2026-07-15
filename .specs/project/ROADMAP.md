@@ -4,13 +4,13 @@
 
 **Objetivo técnico:** estabelecer domínio (entities, value objects, casos de uso), portas e primeiro adapter HTTP; sem mensageria.
 **Critério de saída:** `POST /orders` cria um pedido válido, persiste e retorna 201; `GET /orders/:id` retorna o pedido; testes unitários passando; sem dependência de mensageria.
-**Status:** Em especificação.
+**Status:** ✅ Concluída (2026-07-14). 22 tasks implementadas (T1-T22), Verificador independente: PASS (54 testes, 0 falhas, lint de arquitetura 0 violações). Ver `.specs/features/domain-foundation/validation.md`.
 
 ## Fase 1 — Mensageria com SNS/SQS e fluxo assíncrono completo
 
 **Objetivo técnico:** coreografia via SNS/SQS; publishers/consumers desacoplados; idempotência; DLQ; observabilidade.
 **Critério de saída:** pedido percorre reserva → pagamento → baixa → notificação de forma assíncrona; idempotência comprovada; DLQ funcional.
-**Status:** Não iniciado. Depende de M0.
+**Status:** Em especificação (M0 concluído — desbloqueada).
 
 ## Fase 2 — RabbitMQ como adapter intercambiável
 
@@ -22,7 +22,7 @@
 
 | Marco | Critério | Dependência |
 |---|---|---|
-| M0 — Domínio fundacional pronto | DoD Fase 0 | Nenhuma |
+| M0 — Domínio fundacional pronto | DoD Fase 0 | ✅ Atingido (2026-07-14) |
 | M1 — Fluxo assíncrono funcional | DoD Fase 1 (incl. exceções) | M0 |
 | M2 — Broker intercambiável comprovado | DoD Fase 2 | M1 |
 

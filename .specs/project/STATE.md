@@ -18,6 +18,12 @@
 - AD-007 (2026-07-14, status: active): Estende AD-006 para a camada de aplicação: `CreateOrderUseCase.execute` passa a retornar `Either<EmptyOrderError | InvalidOrderItemError, Order>` (não relança o erro do domínio) e `GetOrderUseCase.execute` passa a retornar `Either<OrderNotFoundError, Order>` (novo domain error) em vez de `Order | null`. Motivo: contrato consistente entre os use cases da mesma camada; "pedido não encontrado" é um caso esperado, não excepcional. Sem controllers/consumidores externos ainda (confirmado por busca no repo) — quando um controller HTTP existir, ele decide o mapeamento `Either` → status HTTP.
 - AD-008 (2026-07-14, status: active): `OrdersController` decide o mapeamento `Either` → HTTP (per AD-007): `Left` de `CreateOrderUseCase` (`EmptyOrderError`/`InvalidOrderItemError`) é lançado como exceção e capturado por `OrderExceptionFilter` (→ 400); `Left` de `GetOrderUseCase` (`OrderNotFoundError`) é traduzido explicitamente para `NotFoundException` do Nest (→ 404). `OrderExceptionFilter` passa a fazer passthrough de qualquer `HttpException` do Nest (não só `NotFoundException`) — desvio do design original (`.specs/features/domain-foundation/design.md`), que previa `NotFoundException → 404` e "qualquer outro erro → 500". Motivo: o `ValidationPipe` global lança `BadRequestException` (subclasse de `HttpException`) para toda falha de validação de DTO; um filtro estreito (`instanceof NotFoundException` apenas) mapeava esses 400 esperados para 500 genérico, quebrado durante a implementação de T13 (e2e). Passthrough de `HttpException` preserva o status/corpo que o próprio Nest já define corretamente, sem reintroduzir esse bug.
 - AD-009 (2026-07-14, status: active): Default de `PERSISTENCE_PROVIDER` em `OrdersModule` invertido de `IN_MEMORY` para `POSTGRES` quando a env var está ausente (supersede AD-002). Motivo: a partir da Fase 0 completa (com adapter Postgres funcional via TypeORM, T17-T22), o usuário decidiu que rodar contra Postgres real deve ser o comportamento padrão — `IN_MEMORY` fica disponível como opt-in explícito via env var para quem precisar rodar sem infraestrutura. Consequência: as suítes e2e que não testam especificamente o adapter Postgres (`test/app.e2e-spec.ts`, `test/orders.e2e-spec.ts`) passaram a fixar `PERSISTENCE_PROVIDER=IN_MEMORY` explicitamente (via `require()` do `AppModule` após setar a env var, mesmo padrão do arquivo de integração Postgres) para continuarem rápidas e independentes de Docker; sem esse ajuste, `npm run test:e2e`/`npm run start` sem `DATABASE_URL` configurado passam a tentar conectar a um Postgres real e falham.
+- AD-010 (2026-07-14, status: active): Idempotency store da Fase 1 (`messaging-flow`) = Redis compartilhado entre todos os consumidores (chave `consumer + idempotencyKey`, TTL nativo), não uma tabela `processed_events` isolada por subdomínio. Motivo: escolha explícita do usuário (PRD pergunta aberta #4), contra a recomendação de isolamento por subdomínio. Consequência: Redis entra como nova peça de infraestrutura no tech stack a partir da Fase 1 (docker-compose de dev/teste); retenção de eventos processados (PRD pergunta #6) é resolvida via TTL nativo do Redis, não job de purge em Postgres.
+- AD-011 (2026-07-14, status: active): Consumo de filas SQS via polling manual na camada de `infrastructure` de cada subdomínio, chamando o use case diretamente — não via custom transport de `@nestjs/microservices`. Motivo: controle direto sobre retry/DLQ/visibility timeout; preserva portabilidade das portas `MessagePublisher`/`MessageConsumer` para o adapter RabbitMQ da Fase 2 sem depender de abstrações do NestJS microservices (PRD §9.4, decisão pendente resolvida).
+- AD-012 (2026-07-14, status: active): Outbox poller roda como job agendado (`@nestjs/schedule`, interval) dentro do próprio processo NestJS, não como processo/worker separado. Motivo: consistente com a topologia de monólito modular já decidida; sem infraestrutura operacional extra para o lab (PRD §9.4, decisão pendente resolvida).
+- AD-013 (2026-07-14, status: active): `correlationId` de todo evento do fluxo reutiliza o próprio `orderId` (que já coincide com `idempotencyKey` por design do PRD §4.3) — não é um UUID separado gerado no `POST /orders`. Motivo: elimina identificador redundante a gerar/propagar sem benefício adicional nesta fase; simplifica rastreabilidade fim a fim (buscar um único id em qualquer camada de log).
+- AD-014 (2026-07-14, status: active): Simulação de recusa de pagamento (`ProcessPayment`) é determinística por valor — `totalAmount` acima de um limite configurável (env var) sempre recusa — não probabilística (PRD pergunta aberta #1 resolvida). Motivo: reproduzível em teste automatizado, sem necessidade de seed/mock de aleatoriedade para evitar flakiness.
+- AD-015 (2026-07-14, status: active): O subdomínio `Order` passa a consumir eventos terminais do fluxo assíncrono (`StockDeducted` → `COMPLETED`; `StockUnavailable` → `STOCK_UNAVAILABLE`; `PaymentDeclined` → `PAYMENT_DECLINED`) e atualizar seu próprio registro de status, em vez de permanecer congelado em `CREATED` após a Fase 0. Motivo: dá valor observável real ao `GET /orders/:id` já existente — sem isso, o endpoint nunca refletiria o resultado do fluxo assíncrono construído na Fase 1.
 
 ## Blockers
 
@@ -29,8 +35,20 @@
 
 ## Todos / Deferred ideas
 
-- Resolver perguntas abertas #1, #3, #4, #6 do PRD ao especificar a Fase 1.
+- Resolver perguntas abertas #1, #3, #4, #6 do PRD ao especificar a Fase 1. ✅ Resolvidas (ver AD-010, AD-011, AD-012, AD-014 e spec.md de `messaging-flow`).
 - Resolver pergunta aberta #5 do PRD ao iniciar a Fase 2.
+- Endpoint administrativo de gestão de saldo de estoque — deferido durante a discussão da Fase 1, não priorizado.
+
+## Handoff
+
+- **Feature**: `.specs/features/messaging-flow` (Fase 1)
+- **Phase / Task**: Specify — spec.md e context.md escritos, aguardando confirmação do usuário antes de avançar para Design
+- **Completed**: Fase 0 (`domain-foundation`) — M0 atingido, PASS. Fase 1 — clarificação de requisitos + discussão de áreas cinzentas concluídas; spec.md com 5 requirement IDs (MSG1-01..05) escrito.
+- **In-progress**: `.specs/features/messaging-flow/spec.md`, `.specs/features/messaging-flow/context.md` (ambos escritos, não commitados)
+- **Next step**: apresentar spec.md ao usuário para confirmação; se aprovado, seguir para Design (arquitetura das portas `MessagePublisher`/`MessageConsumer`, contratos de evento, schema Redis, outbox, novos módulos `stock`/`payment`/`notification`)
+- **Blockers**: nenhum
+- **Uncommitted files**: `.specs/project/ROADMAP.md`, `.specs/project/STATE.md`, `.specs/features/messaging-flow/spec.md`, `.specs/features/messaging-flow/context.md`
+- **Branch**: main
 
 ## Preferences
 
