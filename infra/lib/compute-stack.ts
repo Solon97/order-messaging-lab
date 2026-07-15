@@ -3,7 +3,6 @@ import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
-import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
@@ -21,7 +20,6 @@ export interface ComputeStackProps extends cdk.StackProps {
 export class ComputeStack extends cdk.Stack {
   public readonly cluster: ecs.ICluster;
   public readonly service: ecs.FargateService;
-  public readonly targetGroup: elbv2.ApplicationTargetGroup;
 
   constructor(scope: Construct, id: string, props: ComputeStackProps) {
     super(scope, id, props);
@@ -95,21 +93,19 @@ export class ComputeStack extends cdk.Stack {
       /* remoteRule */ true,
     );
 
+    // SPEC_DEVIATION: design.md has ComputeStack own the ApplicationTargetGroup.
+    // Creating it here with `targets: [service]` makes the ECS Service depend
+    // on the ALB listener rule (EdgeStack), while EdgeStack must reference this
+    // stack's target group/service — a genuine CDK cross-stack cycle, not a
+    // preference. EdgeStack now owns the target group and attaches `service`
+    // directly via `listener.addTargets(...)`, which is the documented pattern
+    // for a target group split across a shared-ALB stack and a service stack.
     this.service = new ecs.FargateService(this, 'Service', {
       cluster: this.cluster,
       taskDefinition,
       desiredCount: serviceConfig.desiredCount,
       securityGroups: [serviceSecurityGroup],
       circuitBreaker: { enable: true, rollback: true },
-    });
-
-    this.targetGroup = new elbv2.ApplicationTargetGroup(this, 'TargetGroup', {
-      vpc: props.vpc,
-      port: serviceConfig.containerPort,
-      protocol: elbv2.ApplicationProtocol.HTTP,
-      targetType: elbv2.TargetType.IP,
-      healthCheck: { path: serviceConfig.healthCheckPath },
-      targets: [this.service],
     });
   }
 }

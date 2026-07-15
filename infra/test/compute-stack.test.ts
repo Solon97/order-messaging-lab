@@ -52,12 +52,6 @@ describe('ComputeStack', () => {
     });
   });
 
-  it('sets the target group health check path to /health', () => {
-    template.hasResourceProperties('AWS::ElasticLoadBalancingV2::TargetGroup', {
-      HealthCheckPath: '/health',
-    });
-  });
-
   it('scopes the database ingress rule to the Fargate service security group only', () => {
     const serviceSecurityGroups = template.findResources('AWS::EC2::SecurityGroup', {
       Properties: {

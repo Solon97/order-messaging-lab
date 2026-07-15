@@ -1,0 +1,73 @@
+import * as cdk from 'aws-cdk-lib/core';
+import { Template, Match } from 'aws-cdk-lib/assertions';
+import { NetworkStack } from '../lib/network-stack';
+import { FoundationStack } from '../lib/foundation-stack';
+import { DatabaseStack } from '../lib/database-stack';
+import { ComputeStack } from '../lib/compute-stack';
+import { EdgeStack } from '../lib/edge-stack';
+
+describe('EdgeStack', () => {
+  const app = new cdk.App();
+  const networkStack = new NetworkStack(app, 'TestNetworkStack3');
+  const foundationStack = new FoundationStack(app, 'TestFoundationStack3');
+  const databaseStack = new DatabaseStack(app, 'TestDatabaseStack3', {
+    vpc: networkStack.vpc,
+  });
+  const computeStack = new ComputeStack(app, 'TestComputeStack3', {
+    vpc: networkStack.vpc,
+    repository: foundationStack.repository,
+    imageTagParameter: foundationStack.imageTagParameter,
+    database: databaseStack.database,
+    databaseSecurityGroup: databaseStack.databaseSecurityGroup,
+  });
+  const stack = new EdgeStack(app, 'TestEdgeStack', {
+    vpc: networkStack.vpc,
+    service: computeStack.service,
+  });
+  const template = Template.fromStack(stack);
+
+  it('creates the ALB as internal, not internet-facing', () => {
+    template.hasResourceProperties('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      Scheme: 'internal',
+    });
+  });
+
+  it('the listener default action is a fixed 404 response', () => {
+    template.hasResourceProperties('AWS::ElasticLoadBalancingV2::Listener', {
+      DefaultActions: Match.arrayWith([
+        Match.objectLike({
+          Type: 'fixed-response',
+          FixedResponseConfig: Match.objectLike({ StatusCode: '404' }),
+        }),
+      ]),
+    });
+  });
+
+  it('creates an HTTP API with a route matching the public /orders path', () => {
+    template.resourceCountIs('AWS::ApiGatewayV2::Api', 1);
+    template.hasResourceProperties('AWS::ApiGatewayV2::Route', {
+      RouteKey: 'ANY /orders',
+    });
+  });
+
+  it('registers the target group with the /health check path', () => {
+    template.hasResourceProperties('AWS::ElasticLoadBalancingV2::TargetGroup', {
+      HealthCheckPath: '/health',
+    });
+  });
+
+  it('the VPC Link security group has no unrestricted egress rule', () => {
+    const securityGroups = template.findResources('AWS::EC2::SecurityGroup', {
+      Properties: { GroupDescription: Match.stringLikeRegexp('VPC Link') },
+    });
+    expect(Object.keys(securityGroups).length).toBe(1);
+
+    const sg = Object.values(securityGroups)[0] as {
+      Properties: { SecurityGroupEgress?: { CidrIp?: string }[] };
+    };
+    const wideOpenEgress = (sg.Properties.SecurityGroupEgress ?? []).filter(
+      (rule) => rule.CidrIp === '0.0.0.0/0',
+    );
+    expect(wideOpenEgress).toHaveLength(0);
+  });
+});
