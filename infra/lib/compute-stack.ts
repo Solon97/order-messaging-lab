@@ -52,6 +52,7 @@ export class ComputeStack extends cdk.Stack {
       this,
       'TaskDefinition',
       {
+        family: serviceConfig.serviceName,
         cpu: serviceConfig.cpu,
         memoryLimitMiB: serviceConfig.memoryLimitMiB,
       },
@@ -66,7 +67,7 @@ export class ComputeStack extends cdk.Stack {
       imageTagParameterName,
     );
 
-    const container = taskDefinition.addContainer('Container', {
+    const container = taskDefinition.addContainer(serviceConfig.serviceName, {
       image: ecs.ContainerImage.fromEcrRepository(props.repository, imageTag),
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: serviceConfig.serviceName,

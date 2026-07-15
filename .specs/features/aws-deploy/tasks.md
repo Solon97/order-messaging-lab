@@ -343,8 +343,8 @@ T10 → T11
 
 **Done when**:
 
-- [ ] All 4 sections above are present and each command is copy-pasteable (real CLI syntax, not pseudocode)
-- [ ] The migration `ecs run-task` command references the exact task definition family name and override command matching `ComputeStack`'s (T7) actual container/task definition naming
+- [x] All 4 sections above are present and each command is copy-pasteable (real CLI syntax, not pseudocode)
+- [x] The migration `ecs run-task` command references the exact task definition family name and override command matching `ComputeStack`'s (T7) actual container/task definition naming — `ComputeStack`'s `FargateTaskDefinition` and its container now set explicit `family`/container name `order-service` (previously implicit/CDK-generated), confirmed via `cdk synth` output (`Family: order-service`, `Container Name: order-service`)
 
 **Tests**: none (docs, per Test Coverage Matrix)
 **Gate**: manual review only
