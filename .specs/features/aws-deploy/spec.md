@@ -93,22 +93,22 @@ Toda ambiguidade foi resolvida ou registrada aqui — nada fica silenciosamente 
 
 ## Requirement Traceability
 
-| Requirement ID | Story | Phase | Status |
-| -------------- | ----------- | ------ | ------- |
-| AWSD-01 | P1: Deploy público | Design | Pending |
-| AWSD-02 | P1: Deploy público | Design | Pending |
-| AWSD-03 | P1: Deploy público | Design | Pending |
-| AWSD-04 | P1: Deploy público | Design | Pending |
-| AWSD-05 | P1: Deploy público | Design | Pending |
-| AWSD-06 | P2: CI/CD | Design | Pending |
-| AWSD-07 | P2: CI/CD | Design | Pending |
-| AWSD-08 | P2: CI/CD | Design | Pending |
+| Requirement ID | Story | Task(s) | Status |
+| -------------- | ----------- | ------- | ------- |
+| AWSD-01 | P1: Deploy público | T3-T9 | In Tasks |
+| AWSD-02 | P1: Deploy público | T6, T8, T9 | In Tasks |
+| AWSD-03 | P1: Deploy público | T6, T8, T9 | In Tasks |
+| AWSD-04 | P1: Deploy público | T7 | In Tasks |
+| AWSD-05 | P1: Deploy público | T11 | In Tasks |
+| AWSD-06 | P2: CI/CD | T4, T10 | In Tasks |
+| AWSD-07 | P2: CI/CD | T4, T10 | In Tasks |
+| AWSD-08 | P2: CI/CD | T7 | In Tasks |
 
 **ID format:** `AWSD-[NUMBER]`
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 8 total, 0 mapped to tasks, 8 unmapped ⚠️ (mapeamento acontece na fase Tasks)
+**Coverage:** 8 total, 8 mapped to tasks, 0 unmapped ✅ (ver `.specs/features/aws-deploy/tasks.md`)
 
 ---
 
