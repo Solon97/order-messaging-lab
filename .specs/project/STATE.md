@@ -44,12 +44,12 @@
 ## Handoff
 
 - **Feature**: `.specs/features/aws-deploy` (Fase 0 — deploy AWS)
-- **Phase / Task**: Execute em andamento — Fase 1 (T1) e Fase 2 (T2) concluídas e commitadas; Fase 3 (T3-T9, stacks CDK) ainda não iniciada
-- **Completed**: Fase 0 (`domain-foundation`) — M0 atingido, PASS. `aws-deploy` — Specify concluído; Design concluído (AD-017 registrada); Tasks concluído (tasks.md, 11 tasks); Execute — T1 (`/health` endpoint, commit `91943e8`) e T2 (Dockerfile + `.dockerignore`, commit `90ca3b9`) concluídos, gate check passou em ambos (`npm test && npm run test:e2e` para T1; `docker build`/`docker run` smoke test para T2). Fase 1 (`messaging-flow`) — Specify concluído, Design ainda não iniciado.
-- **In-progress**: nenhum arquivo de código em progresso; `.specs/features/aws-deploy/tasks.md` atualizado com checkboxes de T1/T2 marcados (não commitado)
-- **Next step**: iniciar Fase 3 (T3 scaffold `infra/` via `cdk init`, depois T4-T9 stacks CDK em sequência) — 9 tasks restantes (T3-T11) excedem o limite de batch único (~8), oferecer sub-agentes ao retomar (packing sugerido no tasks.md: Batch 1 = Fase 3 completa T3-T9, Batch 2 = Fase 4 T10-T11)
+- **Phase / Task**: Execute em andamento — Fases 1, 2 e 3 (T1-T9) concluídas e commitadas; Fase 4 (T10-T11, CI/CD + runbook) ainda não iniciada
+- **Completed**: Fase 0 (`domain-foundation`) — M0 atingido, PASS. `aws-deploy` — Specify concluído; Design concluído (AD-017 registrada); Tasks concluído (tasks.md, 11 tasks); Execute — T1 (`/health`, commit `91943e8`), T2 (Dockerfile, commit `90ca3b9`), T3 (scaffold `infra/`, commit `af432ce`), T4 `FoundationStack` (commit `0c59c26`), T5 `NetworkStack` (commit `24394dd`), T6 `DatabaseStack` (commit `bf5c75b`), T7 `ComputeStack` (commit `bfdb09f`), T8 `EdgeStack` (commit `72d2d34`), T9 wiring em `infra/bin/app.ts` concluídos — gate checks passaram (`cd infra && npm test`: 16/16; `cd infra && npx cdk synth`/`cdk list`: 5 stacks, zero erros; `npm test && npm run test:e2e` na app: 44+16 passando). T9 introduziu um SPEC_DEVIATION documentado em design.md/tasks.md: `ComputeStack` depende de `EdgeStack` (não o inverso previsto originalmente) — `EdgeStack.registerFargateServiceListener()` é chamado de `bin/app.ts` após ambas as stacks existirem, evitando um ciclo real de dependência entre stacks do CDK (a dependência de segurança automática do `ECS::Service` sobre o listener rule vive no recurso da `ComputeStack`). Fase 1 (`messaging-flow`) — Specify concluído, Design ainda não iniciado.
+- **In-progress**: nenhum arquivo de código em progresso
+- **Next step**: iniciar Fase 4 (T10 workflow `deploy.yml` via GitHub Actions OIDC, depois T11 runbook `infra/README.md`) — 2 tasks, cabe em batch único, sem necessidade de sub-agentes
 - **Blockers**: nenhum
-- **Uncommitted files**: `.specs/project/STATE.md`, `.specs/features/aws-deploy/design.md`, `.specs/features/aws-deploy/spec.md`, `.specs/features/aws-deploy/tasks.md`, `.specs/features/messaging-flow/spec.md`, `.specs/features/messaging-flow/context.md`
+- **Uncommitted files**: `.specs/project/STATE.md` (este arquivo)
 - **Branch**: main
 
 ## Preferences
