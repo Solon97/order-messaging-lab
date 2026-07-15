@@ -43,13 +43,13 @@
 
 ## Handoff
 
-- **Feature**: `.specs/features/messaging-flow` (Fase 1)
-- **Phase / Task**: Specify — spec.md e context.md escritos, aguardando confirmação do usuário antes de avançar para Design
-- **Completed**: Fase 0 (`domain-foundation`) — M0 atingido, PASS. Fase 1 — clarificação de requisitos + discussão de áreas cinzentas concluídas; spec.md com 5 requirement IDs (MSG1-01..05) escrito.
-- **In-progress**: `.specs/features/messaging-flow/spec.md`, `.specs/features/messaging-flow/context.md` (ambos escritos, não commitados)
-- **Next step**: apresentar spec.md ao usuário para confirmação; se aprovado, seguir para Design (arquitetura das portas `MessagePublisher`/`MessageConsumer`, contratos de evento, schema Redis, outbox, novos módulos `stock`/`payment`/`notification`)
+- **Feature**: `.specs/features/aws-deploy` (Fase 0 — deploy AWS)
+- **Phase / Task**: Execute em andamento — Fase 1 (T1) e Fase 2 (T2) concluídas e commitadas; Fase 3 (T3-T9, stacks CDK) ainda não iniciada
+- **Completed**: Fase 0 (`domain-foundation`) — M0 atingido, PASS. `aws-deploy` — Specify concluído; Design concluído (AD-017 registrada); Tasks concluído (tasks.md, 11 tasks); Execute — T1 (`/health` endpoint, commit `91943e8`) e T2 (Dockerfile + `.dockerignore`, commit `90ca3b9`) concluídos, gate check passou em ambos (`npm test && npm run test:e2e` para T1; `docker build`/`docker run` smoke test para T2). Fase 1 (`messaging-flow`) — Specify concluído, Design ainda não iniciado.
+- **In-progress**: nenhum arquivo de código em progresso; `.specs/features/aws-deploy/tasks.md` atualizado com checkboxes de T1/T2 marcados (não commitado)
+- **Next step**: iniciar Fase 3 (T3 scaffold `infra/` via `cdk init`, depois T4-T9 stacks CDK em sequência) — 9 tasks restantes (T3-T11) excedem o limite de batch único (~8), oferecer sub-agentes ao retomar (packing sugerido no tasks.md: Batch 1 = Fase 3 completa T3-T9, Batch 2 = Fase 4 T10-T11)
 - **Blockers**: nenhum
-- **Uncommitted files**: `.specs/project/ROADMAP.md`, `.specs/project/STATE.md`, `.specs/features/messaging-flow/spec.md`, `.specs/features/messaging-flow/context.md`
+- **Uncommitted files**: `.specs/project/STATE.md`, `.specs/features/aws-deploy/design.md`, `.specs/features/aws-deploy/spec.md`, `.specs/features/aws-deploy/tasks.md`, `.specs/features/messaging-flow/spec.md`, `.specs/features/messaging-flow/context.md`
 - **Branch**: main
 
 ## Preferences

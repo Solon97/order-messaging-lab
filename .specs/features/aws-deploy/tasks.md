@@ -87,11 +87,11 @@ T10 → T11
 
 **Done when**:
 
-- [ ] `GET /health` returns `200 { status: 'ok' }` when the injected `DataSource` runs `SELECT 1` successfully
-- [ ] `GET /health` returns `503` when the `DataSource` query throws
-- [ ] `GET /health` returns `200 { status: 'ok' }` when no `DataSource` is bound (use `@Optional()` injection) — covers `PERSISTENCE_PROVIDER=IN_MEMORY`
-- [ ] Gate check passes: `npm test && npm run test:e2e`
-- [ ] Test count: unit tests for all 3 branches above + 1 e2e test hitting `/health` on the `IN_MEMORY`-configured app (same bootstrap pattern as `test/orders.e2e-spec.ts`)
+- [x] `GET /health` returns `200 { status: 'ok' }` when the injected `DataSource` runs `SELECT 1` successfully
+- [x] `GET /health` returns `503` when the `DataSource` query throws
+- [x] `GET /health` returns `200 { status: 'ok' }` when no `DataSource` is bound (use `@Optional()` injection) — covers `PERSISTENCE_PROVIDER=IN_MEMORY`
+- [x] Gate check passes: `npm test && npm run test:e2e`
+- [x] Test count: unit tests for all 3 branches above + 1 e2e test hitting `/health` on the `IN_MEMORY`-configured app (same bootstrap pattern as `test/orders.e2e-spec.ts`)
 
 **Tests**: unit + e2e
 **Gate**: full
@@ -114,9 +114,9 @@ T10 → T11
 
 **Done when**:
 
-- [ ] `docker build -t order-service .` succeeds
-- [ ] `docker run --rm -e PERSISTENCE_PROVIDER=IN_MEMORY -p 3000:3000 order-service` starts and `curl localhost:3000/health` (from T1) returns `200`
-- [ ] Final image does not contain `devDependencies` (verify via `docker run --rm order-service ls node_modules | grep -c jest` returning nothing, or equivalent spot check)
+- [x] `docker build -t order-service .` succeeds
+- [x] `docker run --rm -e PERSISTENCE_PROVIDER=IN_MEMORY -p 3000:3000 order-service` starts and `curl localhost:3000/health` (from T1) returns `200`
+- [x] Final image does not contain `devDependencies` (verify via `docker run --rm order-service ls node_modules | grep -c jest` returning nothing, or equivalent spot check)
 
 **Tests**: none (build gate only, per Test Coverage Matrix)
 **Gate**: `docker build -t order-service .` + manual `docker run` smoke check above
