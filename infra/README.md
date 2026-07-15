@@ -69,8 +69,13 @@ aws ecs run-task \
   --task-definition order-service \
   --launch-type FARGATE \
   --network-configuration "awsvpcConfiguration={subnets=[<private-subnet-id>],securityGroups=[<service-security-group-id>],assignPublicIp=DISABLED}" \
-  --overrides '{"containerOverrides":[{"name":"order-service","command":["node","dist/node_modules/.bin/typeorm-ts-node-esm","migration:run","-d","dist/typeorm.config.js"]}]}'
+  --overrides '{"containerOverrides":[{"name":"order-service","command":["node_modules/.bin/typeorm","migration:run","-d","dist/order/infrastructure/persistence/typeorm/data-source.js"]}]}'
 ```
+
+The compiled `DataSource` lives at `dist/order/infrastructure/persistence/typeorm/data-source.js`
+(exported as `AppDataSource` from `src/order/infrastructure/persistence/typeorm/data-source.ts`) —
+`typeorm` is a runtime `dependency` in `package.json` (survives `npm ci --omit=dev` in the
+production image), so `node_modules/.bin/typeorm` is present without any dev-only tooling.
 
 Subnet ID, security group ID, and cluster name are all outputs of `NetworkStack`/`ComputeStack` —
 read them from `cdk deploy`'s console output, or `aws cloudformation describe-stacks` after

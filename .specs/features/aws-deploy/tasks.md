@@ -139,10 +139,10 @@ T10 → T11
 
 **Done when**:
 
-- [ ] `npx cdk init app --language typescript` ran successfully inside an empty `infra/` directory
-- [ ] Generated sample stack and its test are removed (no leftover `lib/infra-stack.ts` / `test/infra.test.ts` referencing a placeholder resource)
-- [ ] `cd infra && npm install && npx cdk synth` succeeds against an app with zero real stacks (sanity check of the generated toolchain before adding stacks)
-- [ ] `ServiceConfig` values in `infra/lib/config.ts` match `design.md` → `Data Models` exactly
+- [x] `npx cdk init app --language typescript` ran successfully inside an empty `infra/` directory
+- [x] Generated sample stack and its test are removed (no leftover `lib/infra-stack.ts` / `test/infra.test.ts` referencing a placeholder resource)
+- [x] `cd infra && npm install && npx cdk synth` succeeds against an app with zero real stacks (sanity check of the generated toolchain before adding stacks)
+- [x] `ServiceConfig` values in `infra/lib/config.ts` match `design.md` → `Data Models` exactly
 
 **Tests**: none (config/scaffold layer, per Test Coverage Matrix)
 **Gate**: Infra-synth (`cd infra && npx cdk synth`)
@@ -166,8 +166,8 @@ T10 → T11
 
 **Done when**:
 
-- [ ] `Template.fromStack` assertions confirm: ECR repo has `ImageTagMutability: IMMUTABLE`; SSM parameter exists at the expected name; push role's trust policy `StringLike` condition references this repo + `main` branch; deploy role has no direct resource permissions beyond `sts:AssumeRole`
-- [ ] Gate check passes: `cd infra && npm test`
+- [x] `Template.fromStack` assertions confirm: ECR repo has `ImageTagMutability: IMMUTABLE`; SSM parameter exists at the expected name; push role's trust policy `StringLike` condition references this repo + `main` branch; deploy role has no direct resource permissions beyond `sts:AssumeRole`
+- [x] Gate check passes: `cd infra && npm test`
 
 **Tests**: unit (CDK assertions)
 **Gate**: Infra-unit
@@ -191,8 +191,8 @@ T10 → T11
 
 **Done when**:
 
-- [ ] `Template.fromStack` assertions confirm exactly 1 VPC resource with 2 AZs' worth of subnets (public + private)
-- [ ] Gate check passes: `cd infra && npm test`
+- [x] `Template.fromStack` assertions confirm exactly 1 VPC resource with 2 AZs' worth of subnets (public + private)
+- [x] Gate check passes: `cd infra && npm test`
 
 **Tests**: unit (CDK assertions)
 **Gate**: Infra-unit
@@ -216,8 +216,8 @@ T10 → T11
 
 **Done when**:
 
-- [ ] `Template.fromStack` assertions confirm: 1 `AWS::RDS::DBInstance` with engine `postgres`, instance class `db.t4g.micro`, in private subnets; 1 dedicated security group with no open ingress rules at this point (verified via absence of a `0.0.0.0/0` or wide-CIDR ingress rule)
-- [ ] Gate check passes: `cd infra && npm test`
+- [x] `Template.fromStack` assertions confirm: 1 `AWS::RDS::DBInstance` with engine `postgres`, instance class `db.t4g.micro`, in private subnets; 1 dedicated security group with no open ingress rules at this point (verified via absence of a `0.0.0.0/0` or wide-CIDR ingress rule)
+- [x] Gate check passes: `cd infra && npm test`
 
 **Tests**: unit (CDK assertions)
 **Gate**: Infra-unit
@@ -241,8 +241,8 @@ T10 → T11
 
 **Done when**:
 
-- [ ] `Template.fromStack` assertions confirm: task definition's container has a `Secrets` entry named `DATABASE_URL` (not present in `Environment`); `DeploymentConfiguration`/`DeploymentCircuitBreaker` has `Enable: true, Rollback: true`; target group health check path is `/health`; database security group (from `DatabaseStack`'s template, cross-stack) receives an ingress rule scoped to the Fargate service's security group only
-- [ ] Gate check passes: `cd infra && npm test`
+- [x] `Template.fromStack` assertions confirm: task definition's container has a `Secrets` entry named `DATABASE_URL` (not present in `Environment`); `DeploymentConfiguration`/`DeploymentCircuitBreaker` has `Enable: true, Rollback: true`; target group health check path is `/health`; database security group (from `DatabaseStack`'s template, cross-stack) receives an ingress rule scoped to the Fargate service's security group only
+- [x] Gate check passes: `cd infra && npm test`
 
 **Tests**: unit (CDK assertions)
 **Gate**: Infra-unit
@@ -266,8 +266,8 @@ T10 → T11
 
 **Done when**:
 
-- [ ] `Template.fromStack` assertions confirm: ALB has `Scheme: internal`; listener default action is a fixed `404` response; HTTP API exists with a route matching the public `/orders` path; VPC Link security group has no unrestricted egress rule
-- [ ] Gate check passes: `cd infra && npm test`
+- [x] `Template.fromStack` assertions confirm: ALB has `Scheme: internal`; listener default action is a fixed `404` response; HTTP API exists with a route matching the public `/orders` path; VPC Link security group has no unrestricted egress rule
+- [x] Gate check passes: `cd infra && npm test`
 
 **Tests**: unit (CDK assertions)
 **Gate**: Infra-unit
