@@ -20,7 +20,38 @@ env:
   CDK_DEPLOY_ROLE_ARN: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-cdk-deploy
 
 jobs:
-  build-and-push:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Architecture lint
+        run: npm run lint:arch
+
+      - name: Unit tests
+        run: npm test
+
+      - name: E2E tests
+        run: npm run test:e2e
+
+  push-image:
+    needs: build-and-test
     runs-on: ubuntu-latest
     outputs:
       image-tag: ${{ steps.image-tag.outputs.value }}
@@ -85,7 +116,7 @@ jobs:
             --overwrite
 
   deploy:
-    needs: build-and-push
+    needs: push-image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
