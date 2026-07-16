@@ -78,7 +78,7 @@ export class ComputeStack extends cdk.Stack {
         streamPrefix: serviceConfig.serviceName,
         logGroup: new logs.LogGroup(this, 'LogGroup', {
           logGroupName: `/ecs/${serviceConfig.serviceName}`,
-          retention: logs.RetentionDays.ONE_MONTH,
+          retention: logs.RetentionDays.THREE_DAYS,
           removalPolicy: cdk.RemovalPolicy.RETAIN,
         }),
       }),
