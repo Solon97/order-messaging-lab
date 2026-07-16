@@ -12,6 +12,16 @@ const githubOrg = 'Solon97';
 const githubRepo = 'order-messaging-lab';
 const githubBranch = 'main';
 
+// GitHub's OIDC `sub` claim can appear either in the plain form
+// (`repo:ORG/REPO:ref:refs/heads/BRANCH`) or, when the org/repo has the
+// "use immutable database IDs" subject-claim setting enabled, with the
+// numeric org/repo IDs appended (`repo:ORG@id/REPO@id:ref:refs/heads/BRANCH`).
+// Match both so the trust policy doesn't depend on that setting.
+const githubSubClaimPatterns = [
+  `repo:${githubOrg}/${githubRepo}:ref:refs/heads/${githubBranch}`,
+  `repo:${githubOrg}@*/${githubRepo}@*:ref:refs/heads/${githubBranch}`,
+];
+
 export class FoundationStack extends cdk.Stack {
   public readonly repository: ecr.IRepository;
   public readonly imageTagParameter: ssm.IStringParameter;
@@ -51,7 +61,7 @@ export class FoundationStack extends cdk.Stack {
             'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
           },
           StringLike: {
-            'token.actions.githubusercontent.com:sub': `repo:${githubOrg}/${githubRepo}:ref:refs/heads/${githubBranch}`,
+            'token.actions.githubusercontent.com:sub': githubSubClaimPatterns,
           },
         },
       ),
@@ -80,7 +90,7 @@ export class FoundationStack extends cdk.Stack {
             'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
           },
           StringLike: {
-            'token.actions.githubusercontent.com:sub': `repo:${githubOrg}/${githubRepo}:ref:refs/heads/${githubBranch}`,
+            'token.actions.githubusercontent.com:sub': githubSubClaimPatterns,
           },
         },
       ),
