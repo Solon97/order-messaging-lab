@@ -1,8 +1,9 @@
 # Deploy runbook — `order-service` on AWS
 
-CDK app for the `aws-deploy` feature (`.specs/features/aws-deploy/`). Provisions 5 stacks —
-`FoundationStack`, `NetworkStack`, `DatabaseStack`, `ComputeStack`, `EdgeStack` — deployed in that
-order (see `bin/app.ts` and `.specs/features/aws-deploy/design.md` for the dependency graph).
+CDK app for the `aws-deploy` feature (`.specs/features/aws-deploy/`). Provisions 6 stacks —
+`FoundationStack`, `NetworkStack`, `DatabaseStack`, `ComputeStack`, `BastionStack`, `EdgeStack` —
+deployed in that order (see `bin/app.ts` and `.specs/features/aws-deploy/design.md` for the
+dependency graph).
 
 ## Useful commands
 
@@ -116,3 +117,73 @@ policy in `foundation-stack.ts`). Without this step succeeding, `/health` and `G
 would fail against a Postgres instance with no schema (`/orders` responds `500` — accepted behavior
 per the feature spec, not silently masked) — the workflow now fails the `deploy` job instead if the
 migration task exits non-zero.
+
+## 5. Acessando o banco da sua máquina local
+
+O RDS Postgres (`DatabaseStack`) fica em subnet privada, sem IP público — não há como conectar nele
+diretamente pela internet. Para debug/inspeção manual, `BastionStack` provisiona uma EC2 dentro da
+VPC que serve de intermediária, alcançável via **AWS Systems Manager (SSM) Session Manager** — sem
+SSH exposto, sem chave para gerenciar, controlado por permissões IAM. Veja o *porquê* completo em
+[`docs/06-bastion-stack.md`](docs/06-bastion-stack.md).
+
+Pré-requisitos: `BastionStack` já deployada, o [plugin de sessão do SSM](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
+instalado localmente (`session-manager-plugin`), e credenciais AWS com permissão para
+`ssm:StartSession` na instância.
+
+`DatabaseStack` força SSL em toda conexão (`rds.force_ssl=1` no parameter group) — qualquer `psql`
+abaixo precisa de `sslmode=require`, senão o RDS recusa a conexão.
+
+Para debug/inspeção manual, use sempre o usuário `bastion_readonly` (só leitura), não o usuário
+master `order_service` da aplicação — mantém acesso ad-hoc sem risco de alterar/derrubar dados por
+engano. Veja o porquê em [`docs/03-database-stack.md`](docs/03-database-stack.md).
+
+### Configuração única (uma vez por ambiente)
+
+Isso **não é provisionado pelo CDK** — é uma recomendação operacional. Escolha uma senha própria
+(gere localmente, ex. `openssl rand -base64 24`, e guarde onde sua equipe já guarda segredos
+operacionais) e, depois do primeiro deploy da `DatabaseStack`, conecte uma vez como usuário master
+(passos 1-2 abaixo, trocando `bastion_readonly` pelo secret do `order_service`) e rode:
+
+```sql
+CREATE USER bastion_readonly WITH PASSWORD '<sua senha>';
+GRANT CONNECT ON DATABASE postgres TO bastion_readonly;
+GRANT USAGE ON SCHEMA public TO bastion_readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO bastion_readonly;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO bastion_readonly;
+```
+
+A última linha garante que tabelas criadas por migrations futuras também fiquem legíveis pro
+`bastion_readonly`, sem precisar repetir o `GRANT` a cada migration.
+
+### Uso do dia a dia
+
+1. Pegue o ID da instância bastion (output `BastionInstanceId` da stack) e o endpoint do RDS (output
+   da `DatabaseStack`, ou via console/`describe-db-instances`):
+
+   ```sh
+   aws cloudformation describe-stacks --stack-name BastionStack \
+     --query "Stacks[0].Outputs[?OutputKey=='BastionInstanceId'].OutputValue" --output text
+
+   aws rds describe-db-instances --db-instance-identifier <db-instance-id> \
+     --query "DBInstances[0].Endpoint.Address" --output text
+   ```
+
+2. Abra o túnel de encaminhamento de porta (fica rodando em primeiro plano — deixe o terminal aberto
+   enquanto usa a conexão):
+
+   ```sh
+   aws ssm start-session \
+     --target <BastionInstanceId> \
+     --document-name AWS-StartPortForwardingSessionToRemoteHost \
+     --parameters '{"host":["<db-endpoint>"],"portNumber":["5432"],"localPortNumber":["5432"]}'
+   ```
+
+3. Conecte no banco via `localhost:5432` com `sslmode=require`, usando a senha do `bastion_readonly`
+   escolhida na configuração única acima:
+
+   ```sh
+   psql "host=localhost port=5432 dbname=postgres user=bastion_readonly password=<sua senha> sslmode=require"
+   ```
+
+Encerre a sessão (`Ctrl+C` no terminal do `ssm start-session`) quando terminar — não há custo
+contínuo além da própria instância bastion (`t4g.nano`) já rodando.

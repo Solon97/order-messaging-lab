@@ -94,6 +94,37 @@ sem proteção contra remoção acidental. Isso é aceitável **só** porque est
 laboratório/demo. Num projeto real com dados de produção, você normalmente usaria
 `RemovalPolicy.SNAPSHOT` ou `RETAIN`.
 
+## SSL forçado: `rds.force_ssl`
+
+```ts
+const parameterGroup = new rds.ParameterGroup(this, 'ParameterGroup', {
+  engine: rds.DatabaseInstanceEngine.postgres({ version: rds.PostgresEngineVersion.VER_16 }),
+  parameters: { 'rds.force_ssl': '1' },
+});
+```
+
+Um **parameter group** é a forma de configurar parâmetros do motor do banco (equivalente ao
+`postgresql.conf`) via CDK/CloudFormation em vez de editar arquivo de configuração na instância.
+`rds.force_ssl=1` faz o Postgres recusar qualquer conexão que não negocie TLS — sem isso, nada
+impede um cliente (por exemplo, um `psql` manual através do túnel do `BastionStack`, veja
+[`06-bastion-stack.md`](06-bastion-stack.md)) de conversar com o banco em texto plano dentro da VPC.
+Com essa flag, toda conexão — da aplicação ou de um humano via bastion — precisa de `sslmode=require`
+(ou equivalente), senão o RDS derruba a conexão.
+
+## Recomendação: um segundo usuário, só leitura, para acesso manual
+
+O usuário master (`order_service`) usado pela aplicação tem privilégio total (DDL, escrita, tudo).
+Reaproveitar essas credenciais para debug manual via `BastionStack` significa que qualquer sessão
+manual roda com poder de superusuário — um erro de digitação num `UPDATE`/`DELETE` sem `WHERE` teria
+o mesmo alcance de um bug de aplicação.
+
+Este stack **não provisiona** esse segundo usuário — não há SQL nem secret gerado pelo CDK para
+isso. É uma recomendação operacional: crie manualmente, uma vez por ambiente, um usuário Postgres
+`bastion_readonly` com uma senha própria (sua, não gerenciada pelo CDK) e privilégio só de
+`SELECT`. Veja o passo a passo em [`../README.md`](../README.md), seção "Acessando o banco da sua
+máquina local". Depois desse passo único, todo acesso manual via bastion deveria usar
+`bastion_readonly`, nunca o usuário master.
+
 ## Migração de schema: por quê não é automática na própria stack
 
 Esta stack só cria a *instância* do banco — um Postgres vazio, sem nenhuma tabela. Rodar as

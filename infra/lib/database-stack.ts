@@ -24,6 +24,18 @@ export class DatabaseStack extends cdk.Stack {
       },
     );
 
+    // Rejects any client connection that doesn't negotiate TLS — closes the
+    // gap where a manual psql session (e.g. through the BastionStack tunnel)
+    // could otherwise fall back to plaintext.
+    const parameterGroup = new rds.ParameterGroup(this, 'ParameterGroup', {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16,
+      }),
+      parameters: {
+        'rds.force_ssl': '1',
+      },
+    });
+
     this.database = new rds.DatabaseInstance(this, 'Database', {
       engine: rds.DatabaseInstanceEngine.postgres({
         version: rds.PostgresEngineVersion.VER_16,
@@ -36,6 +48,7 @@ export class DatabaseStack extends cdk.Stack {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       securityGroups: [this.databaseSecurityGroup],
       credentials: rds.Credentials.fromGeneratedSecret('order_service'),
+      parameterGroup,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
   }

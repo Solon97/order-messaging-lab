@@ -66,7 +66,7 @@ export class BastionStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'BastionInstanceId', {
       value: this.instance.instanceId,
       description:
-        'Bastion instance ID — use with `aws ssm start-session --document-name AWS-StartPortForwardingToRemoteHost` to reach the RDS instance from your machine',
+        'Bastion instance ID — use with `aws ssm start-session --document-name AWS-StartPortForwardingSessionToRemoteHost` to reach the RDS instance from your machine',
     });
   }
 }

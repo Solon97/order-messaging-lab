@@ -12,13 +12,14 @@ no nosso caso) em vez de clicar no console ou escrever YAML/JSON de CloudFormati
 sobe e desce junto. Quando você roda `npx cdk deploy`, o CDK traduz o código TypeScript em um
 template do CloudFormation e pede pra AWS criar/atualizar os recursos descritos nele.
 
-Este projeto tem **5 stacks**, deployadas nesta ordem (cada uma depende da anterior):
+Este projeto tem **6 stacks**, deployadas nesta ordem (cada uma depende da anterior):
 
 ```
 FoundationStack   → ECR (registro de imagens Docker) + parâmetro SSM + roles de CI/CD
 NetworkStack      → VPC (a "rede privada" onde tudo mais vive)
 DatabaseStack     → instância RDS Postgres (depende da VPC)
 ComputeStack      → cluster ECS + serviço Fargate rodando o container (depende de Foundation, Network, Database)
+BastionStack      → EC2 + SSM Session Manager para acesso local ao banco (depende de Network, Database)
 EdgeStack         → Application Load Balancer + API Gateway HTTP API (a porta de entrada pública)
 ```
 
@@ -46,6 +47,8 @@ o "raio de explosão" — um erro num `cdk deploy` do Compute não arrisca derru
    task definition, container, variáveis de ambiente e segredos.
 5. [`05-edge-stack.md`](05-edge-stack.md) — como uma requisição HTTP externa chega até o container:
    API Gateway → VPC Link → Load Balancer → serviço.
+6. [`06-bastion-stack.md`](06-bastion-stack.md) — a EC2 bastion e o SSM Session Manager: como
+   conectar no banco (que não tem IP público) a partir da sua máquina local, sem SSH exposto.
 
 ## Como as peças se conectam (visão de 1000 pés)
 
@@ -73,9 +76,15 @@ o "raio de explosão" — um erro num `cdk deploy` do Compute não arrisca derru
                            ▼
                  ┌───────────────────┐
                  │  RDS Postgres      │  (DatabaseStack) — sem IP público
-                 └───────────────────┘
+                 └─────────▲─────────┘
+                           │ porta 5432, só de quem estiver no SG liberado
+                 ┌─────────┴─────────┐
+                 │  EC2 Bastion       │  (BastionStack) — sem IP público, sem SSH exposto
+                 └─────────▲─────────┘
+                           │ túnel via SSM Session Manager (IAM, sem porta de entrada)
+                     Sua máquina local
 
-Tudo isso (Load Balancer, Fargate, RDS) vive dentro da VPC (NetworkStack).
+Tudo isso (Load Balancer, Fargate, RDS, Bastion) vive dentro da VPC (NetworkStack).
 A imagem Docker do container vem do ECR (FoundationStack).
 ```
 

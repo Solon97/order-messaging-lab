@@ -19,9 +19,6 @@ concurrency:
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  # Role name is a deterministic literal set by FoundationStack (see
-  # foundation-stack.ts) — the ARN only needs the account ID, no lookup
-  # or repo variable required after the first deploy.
   CDK_DEPLOY_ROLE_ARN: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-cdk-deploy
 
 jobs:
