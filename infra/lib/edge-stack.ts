@@ -84,6 +84,10 @@ export class EdgeStack extends cdk.Stack {
         },
       ),
     });
+
+    new cdk.CfnOutput(this, 'HttpApiUrl', {
+      value: this.httpApi.url!,
+    });
   }
 
   public registerFargateServiceListener(
