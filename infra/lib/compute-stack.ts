@@ -72,15 +72,16 @@ export class ComputeStack extends cdk.Stack {
       imageTagParameterName,
     );
 
+    const logGroup = new logs.LogGroup(this, 'LogGroup', {
+      retention: logs.RetentionDays.THREE_DAYS,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+
     const container = taskDefinition.addContainer(serviceConfig.serviceName, {
       image: ecs.ContainerImage.fromEcrRepository(props.repository, imageTag),
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: serviceConfig.serviceName,
-        logGroup: new logs.LogGroup(this, 'LogGroup', {
-          logGroupName: `/ecs/${serviceConfig.serviceName}`,
-          retention: logs.RetentionDays.THREE_DAYS,
-          removalPolicy: cdk.RemovalPolicy.RETAIN,
-        }),
+        logGroup,
       }),
       environment: {
         PORT: String(serviceConfig.containerPort),
@@ -137,6 +138,11 @@ export class ComputeStack extends cdk.Stack {
       value: serviceSecurityGroup.securityGroupId,
       description:
         'Fargate service security group ID, for the one-off migration ECS task network configuration',
+    });
+
+    new cdk.CfnOutput(this, 'LogGroupName', {
+      value: logGroup.logGroupName,
+      description: 'CloudWatch log group for the order-service container',
     });
   }
 }
