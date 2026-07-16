@@ -11,5 +11,11 @@ export class NetworkStack extends cdk.Stack {
     this.vpc = new ec2.Vpc(this, 'Vpc', {
       maxAzs: 2,
     });
+
+    new cdk.CfnOutput(this, 'PrivateSubnetId', {
+      value: this.vpc.privateSubnets[0].subnetId,
+      description:
+        'A private subnet ID, for the one-off migration ECS task network configuration',
+    });
   }
 }

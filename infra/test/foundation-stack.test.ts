@@ -38,13 +38,17 @@ describe('FoundationStack', () => {
     });
   });
 
-  it('grants the CDK deploy role only sts:AssumeRole, no direct resource permissions', () => {
+  it('grants the CDK deploy role only the actions needed to deploy + run the migration task', () => {
     const roles = template.findResources('AWS::IAM::Role', {
       Properties: { RoleName: 'github-actions-cdk-deploy' },
     });
     const deployRole = Object.values(roles)[0] as {
       Properties: {
-        Policies: { PolicyDocument: { Statement: { Action: unknown }[] } }[];
+        Policies: {
+          PolicyDocument: {
+            Statement: { Action: unknown; Resource: unknown }[];
+          };
+        }[];
       };
     };
 
@@ -52,9 +56,38 @@ describe('FoundationStack', () => {
     const allStatements = deployRole.Properties.Policies.flatMap(
       (policy) => policy.PolicyDocument.Statement,
     );
+    const allowedActions = new Set([
+      'sts:AssumeRole',
+      'cloudformation:DescribeStacks',
+      'ecs:RunTask',
+      'ecs:DescribeTasks',
+      'iam:PassRole',
+    ]);
     expect(allStatements.length).toBeGreaterThan(0);
-    expect(allStatements.every((statement) => statement.Action === 'sts:AssumeRole')).toBe(
-      true,
-    );
+    expect(
+      allStatements.every((statement) => allowedActions.has(statement.Action as string)),
+    ).toBe(true);
+  });
+
+  it('restricts the migration task iam:PassRole grant to the ECS tasks service', () => {
+    template.hasResourceProperties('AWS::IAM::Role', {
+      RoleName: 'github-actions-cdk-deploy',
+      Policies: Match.arrayWith([
+        Match.objectLike({
+          PolicyDocument: Match.objectLike({
+            Statement: Match.arrayWith([
+              Match.objectLike({
+                Action: 'iam:PassRole',
+                Condition: Match.objectLike({
+                  StringEquals: Match.objectLike({
+                    'iam:PassedToService': 'ecs-tasks.amazonaws.com',
+                  }),
+                }),
+              }),
+            ]),
+          }),
+        }),
+      ]),
+    });
   });
 });

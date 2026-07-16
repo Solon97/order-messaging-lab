@@ -94,9 +94,9 @@ sem proteção contra remoção acidental. Isso é aceitável **só** porque est
 laboratório/demo. Num projeto real com dados de produção, você normalmente usaria
 `RemovalPolicy.SNAPSHOT` ou `RETAIN`.
 
-## Migração de schema: por quê não é automática
+## Migração de schema: por quê não é automática na própria stack
 
 Esta stack só cria a *instância* do banco — um Postgres vazio, sem nenhuma tabela. Rodar as
-migrations (criar as tabelas da aplicação) é um passo manual separado, documentado no runbook
-principal ([`../README.md`](../README.md), seção 3), executado como uma *one-off task* no ECS depois
-do primeiro deploy do `ComputeStack`.
+migrations (criar as tabelas da aplicação) não faz parte do CloudFormation da stack: é uma
+*one-off task* no ECS, documentada no runbook principal ([`../README.md`](../README.md), seção 4) e
+automatizada no `deploy.yml` — roda a cada push em `main`, depois de todo `cdk deploy --all`.

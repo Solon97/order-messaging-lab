@@ -40,32 +40,61 @@ order (see `bin/app.ts` and `.specs/features/aws-deploy/design.md` for the depen
    scopes the OIDC trust policy's `sub` condition (`repo:<org>/order-messaging-lab:ref:refs/heads/main`)
    for both IAM roles `FoundationStack` creates.
 
-## 2. First deploy (manual, local credentials)
+## 2. First deploy (manual, local credentials — infra only)
 
 The GitHub Actions workflow (`.github/workflows/deploy.yml`) assumes IAM roles that
-`FoundationStack` itself creates — it can't run before those roles exist. So the first
-`cdk deploy --all` is manual, from a local machine with AWS credentials:
+`FoundationStack` itself creates — it can't run before those roles exist. So a first, partial
+`cdk deploy` is manual, from a local machine with AWS credentials. It only needs to cover the
+slow-changing infra — `FoundationStack`, `NetworkStack`, `DatabaseStack` — not the application:
 
 ```sh
 cd infra
 npm ci
-npx cdk deploy --all --require-approval never
+npx cdk deploy FoundationStack NetworkStack DatabaseStack --require-approval never
 ```
 
-This provisions all 5 stacks, including the two OIDC roles
-(`github-actions-order-service-ecr-push`, `github-actions-cdk-deploy`) the workflow needs for every
-subsequent push to `main`.
+This provisions the two OIDC roles (`github-actions-order-service-ecr-push`,
+`github-actions-cdk-deploy`) the workflow needs for every push to `main`, the VPC, and the RDS
+Postgres instance (which alone can take 10-15 minutes to provision — doing it here keeps that time
+off the CI critical path). `ComputeStack` and `EdgeStack` are *not* deployed yet: neither depends
+on `DatabaseStack` in the other direction (see `bin/app.ts`), so this partial deploy is safe, and
+CDK will treat these three stacks as no-ops on every later `cdk deploy --all` since nothing about
+them changes.
 
-## 3. One-off database migration
+Everything else — deploying the application and running database migrations — happens
+automatically via CI from here on. Configure the pipeline (step 3 below) and push to `main`.
 
-`ComputeStack` provisions the ECS cluster, task definition (family `order-service`, container name
-`order-service`), and Fargate service, but does **not** run TypeORM migrations automatically. Before
-the first request hits `/orders`, run the migration once as a one-off ECS task, overriding the
-container's default command:
+## 3. Configure the GitHub Actions deploy pipeline
+
+`.github/workflows/deploy.yml` triggers on every push to `main`. IAM role names are deterministic
+literals set by `FoundationStack` (`github-actions-order-service-ecr-push`,
+`github-actions-cdk-deploy`), so the workflow builds their ARNs from the account ID rather than
+requiring a manual lookup + repo variable per role:
+
+| Secret/variable | Value | Source |
+| --- | --- | --- |
+| `AWS_ACCOUNT_ID` (secret) | the target AWS account ID | your account |
+| `AWS_REGION` (repo variable) | target AWS region, e.g. `us-east-1` | your account's chosen deploy region |
+
+Once those are set, every push to `main` runs `deploy.yml`:
+
+1. `build-and-push` — app gate (lint/test/e2e), then builds and pushes the Docker image to ECR
+   tagged with the commit SHA, and writes that tag to the `image-tag` SSM parameter
+   `FoundationStack` created.
+2. `deploy` — `cd infra && npx cdk deploy --all --require-approval never` (picking up the new image
+   tag from SSM via `ComputeStack`; the first run here is what actually creates `ComputeStack` and
+   `EdgeStack`), then runs the one-off database migration as an ECS task (see below).
+
+## 4. Database migration (automated via CI)
+
+`ComputeStack` provisions the ECS cluster (deterministic name `order-service-cluster`), task
+definition (family `order-service`, container name `order-service`), and Fargate service, but does
+**not** run TypeORM migrations as part of the service itself. Instead, `deploy.yml`'s `deploy` job
+runs the migration as a one-off ECS task after every `cdk deploy --all`:
 
 ```sh
 aws ecs run-task \
-  --cluster <ComputeStack ECS cluster name — see CDK deploy output or `aws ecs list-clusters`> \
+  --cluster order-service-cluster \
   --task-definition order-service \
   --launch-type FARGATE \
   --network-configuration "awsvpcConfiguration={subnets=[<private-subnet-id>],securityGroups=[<service-security-group-id>],assignPublicIp=DISABLED}" \
@@ -75,35 +104,15 @@ aws ecs run-task \
 The compiled `DataSource` lives at `dist/order/infrastructure/persistence/typeorm/data-source.js`
 (exported as `AppDataSource` from `src/order/infrastructure/persistence/typeorm/data-source.ts`) —
 `typeorm` is a runtime `dependency` in `package.json` (survives `npm ci --omit=dev` in the
-production image), so `node_modules/.bin/typeorm` is present without any dev-only tooling.
+production image), so `node_modules/.bin/typeorm` is present without any dev-only tooling. This
+runs on every push — TypeORM migrations only apply pending ones, so it's safe to run repeatedly,
+not just on first deploy.
 
-Subnet ID, security group ID, and cluster name are all outputs of `NetworkStack`/`ComputeStack` —
-read them from `cdk deploy`'s console output, or `aws cloudformation describe-stacks` after
-deploy. Without this step, `/health` and `GET /orders/:id` will fail against a Postgres instance
-with no schema (`/orders` responds `500` — accepted behavior per the feature spec, not silently
-masked).
-
-## 4. Configure the GitHub Actions deploy pipeline
-
-`.github/workflows/deploy.yml` triggers on every push to `main` and reads two role ARNs from
-**repository variables** (Settings → Secrets and variables → Actions → Variables) — never
-hardcoded in the workflow:
-
-| Repo variable | Value | Source |
-| --- | --- | --- |
-| `ECR_PUSH_ROLE_ARN` | ARN of `github-actions-order-service-ecr-push` | `FoundationStack` output (after step 2's manual deploy) |
-| `CDK_DEPLOY_ROLE_ARN` | ARN of `github-actions-cdk-deploy` | `FoundationStack` output (after step 2's manual deploy) |
-| `AWS_REGION` | target AWS region, e.g. `us-east-1` | your account's chosen deploy region |
-
-Look up the two role ARNs after the manual deploy in step 2:
-
-```sh
-aws iam get-role --role-name github-actions-order-service-ecr-push --query Role.Arn --output text
-aws iam get-role --role-name github-actions-cdk-deploy --query Role.Arn --output text
-```
-
-Once the three repo variables are set, every push to `main` runs `deploy.yml`: `build-and-push`
-(app gate — lint/test/e2e — then builds and pushes the Docker image to ECR tagged with the commit
-SHA, writes that tag to the `image-tag` SSM parameter `FoundationStack` created) followed by
-`deploy` (`cd infra && npx cdk deploy --all --require-approval never`, picking up the new image tag
-from SSM via `ComputeStack`).
+Subnet ID and security group ID are read from `NetworkStack`/`ComputeStack`'s `CfnOutput`s via
+`aws cloudformation describe-stacks` (see `deploy.yml`'s `migration-network` step) — the workflow's
+`github-actions-cdk-deploy` role is scoped to exactly this: reading those two stacks' outputs and
+running/describing this one task definition on this one cluster (see the `RunMigrationTask` inline
+policy in `foundation-stack.ts`). Without this step succeeding, `/health` and `GET /orders/:id`
+would fail against a Postgres instance with no schema (`/orders` responds `500` — accepted behavior
+per the feature spec, not silently masked) — the workflow now fails the `deploy` job instead if the
+migration task exits non-zero.

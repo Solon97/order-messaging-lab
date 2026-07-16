@@ -66,6 +66,11 @@ export class FoundationStack extends cdk.Stack {
       `arn:aws:iam::${cdk.Stack.of(this).account}:role/cdk-hnb659fds-lookup-role-${cdk.Stack.of(this).account}-${cdk.Stack.of(this).region}`,
     ];
 
+    // Deterministic literal — see the matching `clusterName` in
+    // compute-stack.ts.
+    const clusterName = `${serviceConfig.serviceName}-cluster`;
+    const clusterArn = `arn:aws:ecs:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:cluster/${clusterName}`;
+
     new iam.Role(this, 'CdkDeployRole', {
       roleName: 'github-actions-cdk-deploy',
       assumedBy: new iam.WebIdentityPrincipal(
@@ -85,6 +90,42 @@ export class FoundationStack extends cdk.Stack {
             new iam.PolicyStatement({
               actions: ['sts:AssumeRole'],
               resources: cdkBootstrapRoleArns,
+            }),
+          ],
+        }),
+        // Lets the `deploy` job read the ComputeStack/NetworkStack outputs
+        // (cluster's SG, subnet) and run the one-off migration ECS task
+        // after every `cdk deploy --all` — see .github/workflows/deploy.yml.
+        RunMigrationTask: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              actions: ['cloudformation:DescribeStacks'],
+              resources: [
+                `arn:aws:cloudformation:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:stack/ComputeStack/*`,
+                `arn:aws:cloudformation:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:stack/NetworkStack/*`,
+              ],
+            }),
+            new iam.PolicyStatement({
+              actions: ['ecs:RunTask'],
+              resources: [
+                `arn:aws:ecs:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:task-definition/${serviceConfig.serviceName}:*`,
+              ],
+              conditions: { ArnEquals: { 'ecs:cluster': clusterArn } },
+            }),
+            new iam.PolicyStatement({
+              actions: ['ecs:DescribeTasks'],
+              resources: [
+                `arn:aws:ecs:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:task/${clusterName}/*`,
+              ],
+            }),
+            new iam.PolicyStatement({
+              actions: ['iam:PassRole'],
+              resources: ['*'],
+              conditions: {
+                StringEquals: {
+                  'iam:PassedToService': 'ecs-tasks.amazonaws.com',
+                },
+              },
             }),
           ],
         }),

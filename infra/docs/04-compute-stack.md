@@ -15,13 +15,17 @@ ECS é só um agrupamento lógico de "onde meus serviços rodam"; não é uma m�
 
 ```ts
 this.cluster = new ecs.Cluster(this, 'Cluster', {
+  clusterName: `${serviceConfig.serviceName}-cluster`,
   vpc: props.vpc,
   containerInsightsV2: ecs.ContainerInsights.ENABLED,
 });
 ```
 
 `containerInsightsV2: ENABLED` liga métricas detalhadas (CPU, memória, rede por container) no
-CloudWatch — útil pra debugar performance depois.
+CloudWatch — útil pra debugar performance depois. `clusterName` é um literal determinístico (em vez
+do nome gerado automaticamente pelo CDK) — permite que a policy IAM da role de deploy
+(`github-actions-cdk-deploy`, em `foundation-stack.ts`) restrinja `ecs:RunTask` a este cluster
+especificamente, e que o `deploy.yml` referencie o cluster sem precisar consultar outputs.
 
 **Fargate** é o modo "serverless" de rodar containers no ECS: você não gerencia servidores EC2 por
 trás — só diz "quero rodar este container, com essa CPU/memória", e a AWS cuida de onde ele roda

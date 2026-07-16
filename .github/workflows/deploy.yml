@@ -1,9 +1,12 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch: {}
+
+# on:
+#   push:
+#     branches:
+#       - main
 
 permissions:
   contents: read
@@ -13,6 +16,11 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   ECR_REPOSITORY: order-service
   IMAGE_TAG_PARAMETER: /order-messaging-lab/order-service/image-tag
+  # Role names are deterministic literals set by FoundationStack (see
+  # foundation-stack.ts) — the ARNs only need the account ID, no lookup
+  # or repo variable required after the first deploy.
+  ECR_PUSH_ROLE_ARN: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-order-service-ecr-push
+  CDK_DEPLOY_ROLE_ARN: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-cdk-deploy
 
 jobs:
   build-and-push:
@@ -50,7 +58,7 @@ jobs:
       - name: Configure AWS credentials (ECR push role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.ECR_PUSH_ROLE_ARN }}
+          role-to-assume: ${{ env.ECR_PUSH_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -95,7 +103,7 @@ jobs:
       - name: Configure AWS credentials (CDK deploy role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.CDK_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ env.CDK_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Install infra dependencies
@@ -105,3 +113,41 @@ jobs:
       - name: Deploy stacks
         working-directory: infra
         run: npx cdk deploy --all --require-approval never
+
+      - name: Resolve migration task network configuration
+        id: migration-network
+        run: |
+          SERVICE_SG=$(aws cloudformation describe-stacks --stack-name ComputeStack \
+            --query "Stacks[0].Outputs[?OutputKey=='ServiceSecurityGroupId'].OutputValue" --output text)
+          SUBNET=$(aws cloudformation describe-stacks --stack-name NetworkStack \
+            --query "Stacks[0].Outputs[?OutputKey=='PrivateSubnetId'].OutputValue" --output text)
+          echo "service_sg=$SERVICE_SG" >> "$GITHUB_OUTPUT"
+          echo "subnet=$SUBNET" >> "$GITHUB_OUTPUT"
+
+      # TypeORM migrations only apply pending ones, so it's safe to run this
+      # on every push rather than gating it to the first deploy.
+      - name: Run database migration
+        env:
+          # Deterministic literal — see the matching `clusterName` in
+          # infra/lib/compute-stack.ts.
+          CLUSTER: order-service-cluster
+          SUBNET: ${{ steps.migration-network.outputs.subnet }}
+          SERVICE_SG: ${{ steps.migration-network.outputs.service_sg }}
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "$CLUSTER" \
+            --task-definition order-service \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNET],securityGroups=[$SERVICE_SG],assignPublicIp=DISABLED}" \
+            --overrides '{"containerOverrides":[{"name":"order-service","command":["node_modules/.bin/typeorm","migration:run","-d","dist/order/infrastructure/persistence/typeorm/data-source.js"]}]}' \
+            --query 'tasks[0].taskArn' --output text)
+
+          aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$TASK_ARN"
+
+          EXIT_CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration task failed with exit code $EXIT_CODE"
+            exit 1
+          fi

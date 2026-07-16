@@ -27,6 +27,11 @@ export class ComputeStack extends cdk.Stack {
     super(scope, id, props);
 
     this.cluster = new ecs.Cluster(this, 'Cluster', {
+      // Deterministic literal (not CDK-generated) so FoundationStack's
+      // github-actions-cdk-deploy role can scope IAM permissions to this
+      // cluster ahead of time — see the migration ECS RunTask permissions
+      // in foundation-stack.ts.
+      clusterName: `${serviceConfig.serviceName}-cluster`,
       vpc: props.vpc,
       containerInsightsV2: ecs.ContainerInsights.ENABLED,
     });
@@ -126,5 +131,11 @@ export class ComputeStack extends cdk.Stack {
       healthCheckPath: serviceConfig.healthCheckPath,
       priority: 1,
     };
+
+    new cdk.CfnOutput(this, 'ServiceSecurityGroupId', {
+      value: serviceSecurityGroup.securityGroupId,
+      description:
+        'Fargate service security group ID, for the one-off migration ECS task network configuration',
+    });
   }
 }
