@@ -5,6 +5,7 @@ import { NetworkStack } from '../lib/network-stack';
 import { DatabaseStack } from '../lib/database-stack';
 import { ComputeStack } from '../lib/compute-stack';
 import { EdgeStack } from '../lib/edge-stack';
+import { BastionStack } from '../lib/bastion-stack';
 
 const app = new cdk.App();
 
@@ -26,6 +27,13 @@ const computeStack = new ComputeStack(app, 'ComputeStack', {
 computeStack.addDependency(foundationStack);
 computeStack.addDependency(networkStack);
 computeStack.addDependency(databaseStack);
+
+const bastionStack = new BastionStack(app, 'BastionStack', {
+  vpc: networkStack.vpc,
+  databaseSecurityGroup: databaseStack.databaseSecurityGroup,
+});
+bastionStack.addDependency(networkStack);
+bastionStack.addDependency(databaseStack);
 
 const edgeStack = new EdgeStack(app, 'EdgeStack', {
   vpc: networkStack.vpc,

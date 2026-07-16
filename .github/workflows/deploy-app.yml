@@ -1,9 +1,11 @@
-name: Deploy
+name: Deploy App
 
 on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'infra/**'
 
 permissions:
   contents: read
@@ -138,9 +140,12 @@ jobs:
         working-directory: infra
         run: npm ci
 
-      - name: Deploy stacks
+      # Only the ComputeStack needs to be redeployed to roll out the new
+      # image tag — other stacks (network, database, edge, foundation)
+      # belong to the infra deploy workflow.
+      - name: Deploy ComputeStack
         working-directory: infra
-        run: npx cdk deploy --all --require-approval never
+        run: npx cdk deploy ComputeStack --require-approval never
 
       - name: Resolve migration task network configuration
         id: migration-network
