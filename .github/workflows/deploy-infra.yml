@@ -11,6 +11,12 @@ permissions:
   contents: read
   id-token: write
 
+# Prevents overlapping Deploy Infra runs (e.g. two quick pushes to main)
+# from applying CDK changes concurrently.
+concurrency:
+  group: deploy-infra-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   # Role name is a deterministic literal set by FoundationStack (see

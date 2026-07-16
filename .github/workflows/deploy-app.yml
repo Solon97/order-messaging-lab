@@ -4,12 +4,18 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'infra/**'
+    paths:
+      - 'src/**'
 
 permissions:
   contents: read
   id-token: write
+
+# Prevents overlapping Deploy App runs (e.g. two quick pushes to main)
+# from applying CDK/ECS changes concurrently.
+concurrency:
+  group: deploy-app-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
