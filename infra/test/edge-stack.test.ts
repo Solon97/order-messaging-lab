@@ -27,9 +27,12 @@ describe('EdgeStack', () => {
   const template = Template.fromStack(stack);
 
   it('creates the ALB as internal, not internet-facing', () => {
-    template.hasResourceProperties('AWS::ElasticLoadBalancingV2::LoadBalancer', {
-      Scheme: 'internal',
-    });
+    template.hasResourceProperties(
+      'AWS::ElasticLoadBalancingV2::LoadBalancer',
+      {
+        Scheme: 'internal',
+      },
+    );
   });
 
   it('the listener default action is a fixed 404 response', () => {

@@ -119,14 +119,6 @@ export class ComputeStack extends cdk.Stack {
       circuitBreaker: { enable: true, rollback: true },
     });
 
-    // ComputeStack does not own an ApplicationTargetGroup (see AD note in
-    // design.md): the ECS Service always carries a safety dependency onto
-    // wherever its target group is attached to a listener rule, so
-    // EdgeStack -> ComputeStack (needing the service as a target) and
-    // ComputeStack -> EdgeStack (Service waiting on the listener rule) would
-    // be a genuine cycle if both stacks referenced each other directly.
-    // ComputeStack instead exposes routing metadata; bin/app.ts wires it into
-    // EdgeStack.registerFargateServiceListener(...) after both stacks exist.
     this.listenerConfig = {
       service: this.service,
       containerPort: serviceConfig.containerPort,

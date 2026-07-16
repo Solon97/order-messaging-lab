@@ -15,7 +15,7 @@ export const serviceConfig: ServiceConfig = {
   healthCheckPath: '/health',
   cpu: 512,
   memoryLimitMiB: 1024,
-  desiredCount: 1,
+  desiredCount: 2,
 };
 
 export const imageTagParameterName = `/order-messaging-lab/${serviceConfig.serviceName}/image-tag`;

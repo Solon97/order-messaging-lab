@@ -76,22 +76,19 @@ export class EdgeStack extends cdk.Stack {
     this.httpApi.addRoutes({
       path: serviceConfig.publicPath,
       methods: [apigwv2.HttpMethod.ANY],
-      integration: new HttpAlbIntegration('OrdersRootIntegration', this.listener, {
-        vpcLink,
-      }),
+      integration: new HttpAlbIntegration(
+        'OrdersRootIntegration',
+        this.listener,
+        {
+          vpcLink,
+        },
+      ),
     });
   }
 
-  // Registers a Fargate service against this stack's listener. Called from
-  // bin/app.ts after both ComputeStack and EdgeStack are constructed — see
-  // AD note in design.md: ComputeStack must depend on EdgeStack (not the
-  // reverse), because ecs.FargateService always adds a safety dependency
-  // from the ECS Service onto wherever its target group is attached to a
-  // listener rule. Building the target group here, empty of any inline
-  // `targets`, and having ComputeStack (via this method, but the mutation
-  // lands on the Service's own resource) attach afterwards keeps the
-  // resulting cross-stack reference one-directional: ComputeStack -> EdgeStack.
-  public registerFargateServiceListener(config: FargateServiceListenerConfig): void {
+  public registerFargateServiceListener(
+    config: FargateServiceListenerConfig,
+  ): void {
     this.listener.addTargets('OrdersRoute', {
       priority: config.priority,
       conditions: [

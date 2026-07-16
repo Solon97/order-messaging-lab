@@ -8,7 +8,7 @@ import { imageTagParameterName, serviceConfig } from './config';
 // SPEC_DEVIATION: the GitHub org/repo owning this codebase is not yet fixed
 // (no git remote configured at scaffold time). Update `githubOrg` before the
 // first real `cdk deploy` — see infra/README.md.
-const githubOrg = 'REPLACE_WITH_GITHUB_ORG';
+const githubOrg = 'Solon97';
 const githubRepo = 'order-messaging-lab';
 const githubBranch = 'main';
 
@@ -26,10 +26,14 @@ export class FoundationStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    this.imageTagParameter = new ssm.StringParameter(this, 'ImageTagParameter', {
-      parameterName: imageTagParameterName,
-      stringValue: 'latest',
-    });
+    this.imageTagParameter = new ssm.StringParameter(
+      this,
+      'ImageTagParameter',
+      {
+        parameterName: imageTagParameterName,
+        stringValue: 'latest',
+      },
+    );
 
     const githubOidcProvider =
       iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
