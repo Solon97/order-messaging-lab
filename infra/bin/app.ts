@@ -31,9 +31,4 @@ const edgeStack = new EdgeStack(app, 'EdgeStack', {
   vpc: networkStack.vpc,
 });
 edgeStack.addDependency(networkStack);
-
-// Wired after both stacks exist — see the AD note in design.md /
-// compute-stack.ts: EdgeStack must not reference ComputeStack directly
-// (would create a cyclic stack dependency with the ECS Service's automatic
-// safety ordering against its target group's listener rule).
 edgeStack.registerFargateServiceListener(computeStack.listenerConfig);
