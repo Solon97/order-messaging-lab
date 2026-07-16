@@ -79,11 +79,12 @@ export class ComputeStack extends cdk.Stack {
         logGroup: new logs.LogGroup(this, 'LogGroup', {
           logGroupName: `/ecs/${serviceConfig.serviceName}`,
           retention: logs.RetentionDays.ONE_MONTH,
-          removalPolicy: cdk.RemovalPolicy.DESTROY,
+          removalPolicy: cdk.RemovalPolicy.RETAIN,
         }),
       }),
       environment: {
         PORT: String(serviceConfig.containerPort),
+        DATABASE_SSL: 'true',
       },
       secrets: {
         DATABASE_URL: ecs.Secret.fromSecretsManager(databaseUrlSecret),
