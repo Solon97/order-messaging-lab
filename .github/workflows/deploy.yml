@@ -1,19 +1,16 @@
 name: Deploy
 
 on:
-  workflow_dispatch: {}
-
-# on:
-#   push:
-#     branches:
-#       - main
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
   id-token: write
 
 env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: order-service
   IMAGE_TAG_PARAMETER: /order-messaging-lab/order-service/image-tag
   # Role names are deterministic literals set by FoundationStack (see

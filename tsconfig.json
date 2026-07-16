@@ -25,5 +25,6 @@
       "@/*": ["./src/*"],
       "@test/*": ["./test/*"]
     },
-  }
+  },
+  "exclude": ["node_modules", "dist", "infra"]
 }
