@@ -86,7 +86,7 @@ T15 → T16
 
 ### T1: Create `AuthStack` (User Pool + Resource Server + App Client)
 
-**What**: New `infra/lib/auth-stack.ts` provisioning a Cognito `UserPool`, a `UserPoolResourceServer` (`identifier: 'orders-api'`) with one catch-all `ResourceServerScope` (`access`), and a `UserPoolClient` with `oAuth.flows.clientCredentials: true`, `generateSecret: true`, scoped to the catch-all scope. Exposes `userPool`, `userPoolClient`, `resourceServerIdentifier` as public readonly properties. `CfnOutput` for `userPoolId` and `userPoolClientId` (never the client secret).
+**What**: New `infra/lib/auth-stack.ts` provisioning a Cognito `UserPool`, a `UserPoolResourceServer` (`identifier: 'order-service'`) with one catch-all `ResourceServerScope` (`access`), and a `UserPoolClient` with `oAuth.flows.clientCredentials: true`, `generateSecret: true`, scoped to the catch-all scope. Exposes `userPool`, `userPoolClient`, `resourceServerIdentifier` as public readonly properties. `CfnOutput` for `userPoolId` and `userPoolClientId` (never the client secret).
 **Where**: `infra/lib/auth-stack.ts`
 **Depends on**: None
 **Reuses**: `CfnOutput` pattern from `infra/lib/foundation-stack.ts`/`compute-stack.ts`; `serviceConfig` naming convention from `infra/lib/config.ts`

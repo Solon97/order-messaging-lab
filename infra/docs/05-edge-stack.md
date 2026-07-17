@@ -3,8 +3,9 @@
 Arquivo: [`../lib/edge-stack.ts`](../lib/edge-stack.ts)
 
 Esta é a "porta de entrada" da aplicação: onde uma requisição HTTP vinda da internet acaba chegando
-até o container do `order-service`. Recebe `vpc` do `NetworkStack` e é conectada ao `ComputeStack`
-depois de ambas existirem (veja o final de
+até o container do `order-service`. Recebe `vpc` do `NetworkStack`, `userPool`/`userPoolClientId` do
+[`AuthStack`](07-auth-stack.md) (usados pelo authorizer JWT, ver seção própria abaixo), e é conectada
+ao `ComputeStack` depois de ambas existirem (veja o final de
 [`04-compute-stack.md`](04-compute-stack.md) para o porquê dessa ordem).
 
 ## O caminho de uma requisição, em 3 saltos
@@ -50,11 +51,17 @@ que de fato mandam tráfego pro container) são adicionadas depois, por
 ## API Gateway HTTP API — o endpoint público de verdade
 
 ```ts
-this.httpApi = new apigwv2.HttpApi(this, 'HttpApi');
+this.httpApi = new apigwv2.HttpApi(this, 'HttpApi', { createDefaultStage: false });
+const defaultStage = this.httpApi.addStage('DefaultStage', {
+  stageName: '$default',
+  autoDeploy: true,
+  throttle: edgeThrottle,
+});
 this.httpApi.addRoutes({
   path: `${serviceConfig.publicPath}/{proxy+}`,
   methods: [apigwv2.HttpMethod.ANY],
   integration: new HttpAlbIntegration('OrdersIntegration', this.listener, { vpcLink }),
+  authorizer: ordersAuthorizer,
 });
 ```
 
@@ -73,6 +80,58 @@ Repare que `serviceConfig.publicPath` (`/orders`, definido em
 [`../lib/config.ts`](../lib/config.ts)) é o único lugar que precisa mudar se um dia você quiser expor
 esse serviço num caminho diferente — tanto o API Gateway quanto as regras do Load Balancer
 (`registerFargateServiceListener`, abaixo) leem do mesmo valor.
+
+## Authorizer JWT — a primeira das 2 camadas de autenticação
+
+```ts
+const ordersAuthorizer = new HttpJwtAuthorizer(
+  'OrdersAuthorizer',
+  props.userPool.userPoolProviderUrl,
+  { jwtAudience: [props.userPoolClientId] },
+);
+```
+
+Um **JWT Authorizer** nativo do API Gateway (`HttpJwtAuthorizer`, sem Lambda customizado) valida um
+token antes mesmo de qualquer coisa chegar no VPC Link/ALB/container: assinatura, `issuer` (aqui, o
+[`AuthStack`](07-auth-stack.md)) e `audience` (`jwtAudience: [userPoolClientId]` — só tokens emitidos
+para *este* App Client são aceitos). Se o header `Authorization` estiver ausente, malformado, ou o
+token expirado/inválido, o API Gateway responde `401` **sem nunca repassar a requisição** ao ALB —
+o container nem fica sabendo que a chamada existiu.
+
+O mesmo objeto `ordersAuthorizer` é anexado às duas rotas (`{proxy+}` e a raiz `/orders`) via
+`authorizer: ordersAuthorizer` no `addRoutes` — nenhuma delas fica desprotegida.
+
+Esta é só a **primeira** de 2 camadas independentes de autenticação (defesa em profundidade): o
+guard do NestJS, dentro do container, revalida o mesmo token de forma independente, sem confiar cegamente
+que "já passou pelo API Gateway, então está ok". Nenhuma camada confia só na outra.
+
+> Repare que `EdgeStackProps.userPool` é tipado como `cognito.UserPool` (a classe concreta), não a
+> interface `IUserPool` — `userPoolProviderUrl` (o issuer que o authorizer precisa) só existe na
+> classe concreta. Isso está marcado como `SPEC_DEVIATION` no código.
+
+## Throttling — limite de rate/burst na borda
+
+```ts
+const defaultStage = this.httpApi.addStage('DefaultStage', {
+  stageName: '$default',
+  autoDeploy: true,
+  throttle: edgeThrottle, // { rateLimit: 50, burstLimit: 100 } — infra/lib/config.ts
+});
+```
+
+Antes desta feature, o `HttpApi` usava o stage `$default` **implícito** (criado automaticamente pelo
+CDK quando você não passa nenhuma opção). Configurar throttle exige um stage **explícito**
+(`createDefaultStage: false` + `addStage(...)`) — daí a mudança na forma de criar o `HttpApi` acima.
+
+- `rateLimit` (50 req/s) é o limite médio sustentado; `burstLimit` (100) é o quanto uma rajada pode
+  exceder isso momentaneamente. Acima de qualquer um dos dois, o API Gateway responde `429` — de
+  novo, antes de alcançar o ALB/ECS. São valores de laboratório (`infra/lib/config.ts`), não
+  dimensionamento de produção.
+- `autoDeploy: true` preserva o comportamento anterior de "toda mudança no `HttpApi` já reflete
+  automaticamente no stage", sem precisar de um deploy manual de stage à parte.
+- A URL exposta em `HttpApiUrl` (`CfnOutput`) continua resolvendo para a raiz do endpoint do
+  `$default` stage — a troca para stage explícito não muda essa URL nem o comportamento de nenhuma
+  rota existente.
 
 ## VPC Link — a ponte entre o API Gateway (público) e o ALB (privado)
 

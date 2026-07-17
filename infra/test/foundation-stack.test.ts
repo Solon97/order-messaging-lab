@@ -1,6 +1,13 @@
 import * as cdk from 'aws-cdk-lib/core';
 import { Template, Match } from 'aws-cdk-lib/assertions';
 import { FoundationStack } from '../lib/foundation-stack';
+import { serviceConfig } from '../lib/config';
+
+const {
+  organization: githubOrg,
+  name: githubRepo,
+  branch: githubBranch,
+} = serviceConfig.repository;
 
 describe('FoundationStack', () => {
   const app = new cdk.App();
@@ -27,9 +34,11 @@ describe('FoundationStack', () => {
           Match.objectLike({
             Condition: Match.objectLike({
               StringLike: Match.objectLike({
-                'token.actions.githubusercontent.com:sub': Match.stringLikeRegexp(
-                  ':ref:refs/heads/main$',
-                ),
+                'token.actions.githubusercontent.com:sub': Match.arrayWith([
+                  Match.stringLikeRegexp(
+                    `^repo:${githubOrg}(@\\*)?/${githubRepo}(@\\*)?:ref:refs/heads/${githubBranch}$`,
+                  ),
+                ]),
               }),
             }),
           }),
@@ -65,7 +74,9 @@ describe('FoundationStack', () => {
     ]);
     expect(allStatements.length).toBeGreaterThan(0);
     expect(
-      allStatements.every((statement) => allowedActions.has(statement.Action as string)),
+      allStatements.every((statement) =>
+        allowedActions.has(statement.Action as string),
+      ),
     ).toBe(true);
   });
 

@@ -1,9 +1,11 @@
 # Deploy runbook — `order-service` on AWS
 
-CDK app for the `aws-deploy` feature (`.specs/features/aws-deploy/`). Provisions 6 stacks —
-`FoundationStack`, `NetworkStack`, `DatabaseStack`, `ComputeStack`, `BastionStack`, `EdgeStack` —
-deployed in that order (see `bin/app.ts` and `.specs/features/aws-deploy/design.md` for the
-dependency graph).
+CDK app for the `aws-deploy` and `auth` features (`.specs/features/aws-deploy/`,
+`.specs/features/auth/`). Provisions 7 stacks — `FoundationStack`, `NetworkStack`, `AuthStack`,
+`DatabaseStack`, `ComputeStack`, `BastionStack`, `EdgeStack` — deployed in that order (see
+`bin/app.ts` and `.specs/features/aws-deploy/design.md`/`.specs/features/auth/design.md` for the
+dependency graph). See [`docs/07-auth-stack.md`](docs/07-auth-stack.md) for what `AuthStack`
+provisions and why.
 
 ## Useful commands
 
@@ -11,7 +13,7 @@ dependency graph).
 * `npm run test` run the CDK stack unit tests (`Template.fromStack` assertions)
 * `npx cdk synth` emit the synthesized CloudFormation templates
 * `npx cdk diff` compare deployed stacks with current state
-* `npx cdk deploy --all` deploy all 5 stacks to the default AWS account/region
+* `npx cdk deploy --all` deploy all 7 stacks to the default AWS account/region
 
 ## 1. Prerequisites
 
@@ -57,10 +59,12 @@ npx cdk deploy FoundationStack NetworkStack DatabaseStack --require-approval nev
 This provisions the two OIDC roles (`github-actions-order-service-ecr-push`,
 `github-actions-cdk-deploy`) the workflow needs for every push to `main`, the VPC, and the RDS
 Postgres instance (which alone can take 10-15 minutes to provision — doing it here keeps that time
-off the CI critical path). `ComputeStack` and `EdgeStack` are *not* deployed yet: neither depends
-on `DatabaseStack` in the other direction (see `bin/app.ts`), so this partial deploy is safe, and
-CDK will treat these three stacks as no-ops on every later `cdk deploy --all` since nothing about
-them changes.
+off the CI critical path). `AuthStack`, `ComputeStack`, and `EdgeStack` are *not* deployed yet: none
+of the three depends on `DatabaseStack` in the other direction (see `bin/app.ts`), so this partial
+deploy is safe, and CDK will treat these three stacks as no-ops on every later `cdk deploy --all`
+since nothing about them changes. (`AuthStack` itself is fast to provision — it's `ComputeStack`
+and `EdgeStack`'s dependency on it, not its own cost, that matters here; it deploys along with them
+on the first automated `cdk deploy --all` below.)
 
 Everything else — deploying the application and running database migrations — happens
 automatically via CI from here on. Configure the pipeline (step 3 below) and push to `main`.
@@ -83,8 +87,9 @@ Once those are set, every push to `main` runs `deploy.yml`:
    tagged with the commit SHA, and writes that tag to the `image-tag` SSM parameter
    `FoundationStack` created.
 2. `deploy` — `cd infra && npx cdk deploy --all --require-approval never` (picking up the new image
-   tag from SSM via `ComputeStack`; the first run here is what actually creates `ComputeStack` and
-   `EdgeStack`), then runs the one-off database migration as an ECS task (see below).
+   tag from SSM via `ComputeStack`; the first run here is what actually creates `AuthStack`,
+   `ComputeStack`, and `EdgeStack`), then runs the one-off database migration as an ECS task (see
+   below).
 
 ## 4. Database migration (automated via CI)
 

@@ -3,14 +3,13 @@ import { Construct } from 'constructs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
-import { imageTagParameterName, serviceConfig } from './config';
+import { serviceConfig } from './config';
 
-// SPEC_DEVIATION: the GitHub org/repo owning this codebase is not yet fixed
-// (no git remote configured at scaffold time). Update `githubOrg` before the
-// first real `cdk deploy` — see infra/README.md.
-const githubOrg = 'Solon97';
-const githubRepo = 'order-messaging-lab';
-const githubBranch = 'main';
+const {
+  organization: githubOrg,
+  name: githubRepo,
+  branch: githubBranch,
+} = serviceConfig.repository;
 
 // GitHub's OIDC `sub` claim can appear either in the plain form
 // (`repo:ORG/REPO:ref:refs/heads/BRANCH`) or, when the org/repo has the
@@ -40,7 +39,7 @@ export class FoundationStack extends cdk.Stack {
       this,
       'ImageTagParameter',
       {
-        parameterName: imageTagParameterName,
+        parameterName: serviceConfig.imageTagParameterName,
         stringValue: 'latest',
       },
     );

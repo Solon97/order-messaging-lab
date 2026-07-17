@@ -23,7 +23,7 @@ graph TD
 
     subgraph AuthStack [CDK: AuthStack]
         UserPool[Cognito UserPool]
-        ResourceServer[UserPoolResourceServer orders-api]
+        ResourceServer[UserPoolResourceServer order-service]
         AppClient[UserPoolClient - clientCredentials]
     end
     UserPool --> ResourceServer --> AppClient
@@ -83,7 +83,7 @@ const userPool = new cognito.UserPool(this, 'UserPool', {
 });
 
 const resourceServer = userPool.addResourceServer('ResourceServer', {
-  identifier: 'orders-api',
+  identifier: 'order-service',
   // sem scopes: spec decide "só autenticado", sem granularidade de escopo
 });
 
@@ -96,7 +96,7 @@ const userPoolClient = userPool.addClient('ServiceClient', {
 });
 ```
 
-> **Risco identificado (ver Risks & Concerns):** `clientCredentials` exige ao menos 1 `OAuthScope.resourceServer(...)` — como não há diferenciação de escopo nesta fase, cria-se **um único scope "catch-all"** (ex. `orders-api/access`) no Resource Server, concedido ao client. Isso é infraestrutura, não autorização — nenhuma verificação de escopo específico é feita no guard ou no authorizer (só existência de um JWT válido do client), preservando a decisão "só autenticado, sem diferenciação".
+> **Risco identificado (ver Risks & Concerns):** `clientCredentials` exige ao menos 1 `OAuthScope.resourceServer(...)` — como não há diferenciação de escopo nesta fase, cria-se **um único scope "catch-all"** (ex. `order-service/access`) no Resource Server, concedido ao client. Isso é infraestrutura, não autorização — nenhuma verificação de escopo específico é feita no guard ou no authorizer (só existência de um JWT válido do client), preservando a decisão "só autenticado, sem diferenciação".
 
 ### `EdgeStack` (extensão)
 

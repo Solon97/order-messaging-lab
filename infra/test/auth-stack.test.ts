@@ -13,10 +13,8 @@ describe('AuthStack', () => {
 
   it('creates a User Pool Resource Server with one catch-all scope', () => {
     template.hasResourceProperties('AWS::Cognito::UserPoolResourceServer', {
-      Identifier: 'orders-api',
-      Scopes: Match.arrayWith([
-        Match.objectLike({ ScopeName: 'access' }),
-      ]),
+      Identifier: 'order-service',
+      Scopes: Match.arrayWith([Match.objectLike({ ScopeName: 'access' })]),
     });
     const resourceServers = template.findResources(
       'AWS::Cognito::UserPoolResourceServer',

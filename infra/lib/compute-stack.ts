@@ -8,7 +8,7 @@ import * as rds from 'aws-cdk-lib/aws-rds';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import type { FargateServiceListenerConfig } from './edge-stack';
-import { imageTagParameterName, serviceConfig } from './config';
+import { serviceConfig } from './config';
 
 export interface ComputeStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
@@ -71,7 +71,7 @@ export class ComputeStack extends cdk.Stack {
     // name to build the SSM ARN.
     const imageTag = ssm.StringParameter.valueForStringParameter(
       this,
-      imageTagParameterName,
+      serviceConfig.imageTagParameterName,
     );
 
     const logGroup = new logs.LogGroup(this, 'LogGroup', {

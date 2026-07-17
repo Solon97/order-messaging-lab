@@ -3,9 +3,10 @@
 Arquivo: [`../lib/compute-stack.ts`](../lib/compute-stack.ts)
 
 Esta é a stack mais densa do projeto — é onde a aplicação (`order-service`) de fato roda. Recebe
-props de **três** stacks diferentes: `vpc`/`repository`/`imageTagParameter` (Foundation/Network) e
-`database`/`databaseSecurityGroup` (Database). Também expõe `listenerConfig`, consumido pelo
-`EdgeStack` (veja a seção final).
+props de **quatro** stacks diferentes: `vpc`/`repository`/`imageTagParameter` (Foundation/Network),
+`database`/`databaseSecurityGroup` (Database) e `userPoolId`/`userPoolClientId`
+([`AuthStack`](07-auth-stack.md)). Também expõe `listenerConfig`, consumido pelo `EdgeStack` (veja a
+seção final).
 
 ## ECS e Fargate: os dois conceitos centrais
 
@@ -91,9 +92,23 @@ logs do container" sem precisar entrar na máquina.
 ### Variáveis de ambiente vs. segredos
 
 ```ts
-environment: { PORT: String(serviceConfig.containerPort) },
+environment: {
+  PORT: String(serviceConfig.containerPort),
+  DATABASE_SSL: 'true',
+  AUTH_PROVIDER: 'COGNITO',
+  COGNITO_USER_POOL_ID: props.userPoolId,
+  COGNITO_CLIENT_ID: props.userPoolClientId,
+},
 secrets: { DATABASE_URL: ecs.Secret.fromSecretsManager(databaseUrlSecret) },
 ```
+
+`AUTH_PROVIDER`/`COGNITO_USER_POOL_ID`/`COGNITO_CLIENT_ID` (vindos do
+[`AuthStack`](07-auth-stack.md)) são o que permite ao guard do NestJS, dentro do container,
+revalidar o JWT de forma independente do authorizer do API Gateway (ver
+[`05-edge-stack.md`](05-edge-stack.md#authorizer-jwt--a-primeira-das-2-camadas-de-autenticação)) —
+segunda camada da defesa em profundidade. Nenhum dos dois é sensível o bastante para precisar de
+Secrets Manager: são IDs públicos do User Pool/App Client, não o `client_secret` (que nunca sai do
+Cognito, nem aqui nem em nenhuma outra stack — ver `07-auth-stack.md`).
 
 `environment` é configuração não sensível, injetada em texto plano na task definition — visível pra
 quem tiver acesso de leitura ao ECS. `secrets` é diferente: o **valor nunca aparece na task

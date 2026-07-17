@@ -11,7 +11,7 @@ export class AuthStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    this.resourceServerIdentifier = 'orders-api';
+    this.resourceServerIdentifier = serviceConfig.serviceName;
 
     this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: `${serviceConfig.serviceName}-users`,
@@ -32,7 +32,9 @@ export class AuthStack extends cdk.Stack {
       generateSecret: true,
       oAuth: {
         flows: { clientCredentials: true },
-        scopes: [cognito.OAuthScope.resourceServer(resourceServer, accessScope)],
+        scopes: [
+          cognito.OAuthScope.resourceServer(resourceServer, accessScope),
+        ],
       },
     });
 
