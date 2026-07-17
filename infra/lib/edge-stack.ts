@@ -7,7 +7,7 @@ import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpAlbIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import type * as cognito from 'aws-cdk-lib/aws-cognito';
-import { serviceConfig } from './config';
+import { edgeThrottle, serviceConfig } from './config';
 
 export interface EdgeStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
@@ -78,7 +78,14 @@ export class EdgeStack extends cdk.Stack {
       { jwtAudience: [props.userPoolClientId] },
     );
 
-    this.httpApi = new apigwv2.HttpApi(this, 'HttpApi');
+    this.httpApi = new apigwv2.HttpApi(this, 'HttpApi', {
+      createDefaultStage: false,
+    });
+    const defaultStage = this.httpApi.addStage('DefaultStage', {
+      stageName: '$default',
+      autoDeploy: true,
+      throttle: edgeThrottle,
+    });
     this.httpApi.addRoutes({
       path: `${serviceConfig.publicPath}/{proxy+}`,
       methods: [apigwv2.HttpMethod.ANY],
@@ -101,7 +108,7 @@ export class EdgeStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'HttpApiUrl', {
-      value: this.httpApi.url!,
+      value: defaultStage.url,
     });
   }
 

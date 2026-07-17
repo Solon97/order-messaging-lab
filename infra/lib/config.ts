@@ -18,4 +18,10 @@ export const serviceConfig: ServiceConfig = {
   desiredCount: 2,
 };
 
+// Lab-scale defaults, not production sizing.
+export const edgeThrottle = {
+  rateLimit: 50,
+  burstLimit: 100,
+};
+
 export const imageTagParameterName = `/order-messaging-lab/${serviceConfig.serviceName}/image-tag`;

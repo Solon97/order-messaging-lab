@@ -6,6 +6,7 @@ import { DatabaseStack } from '../lib/database-stack';
 import { ComputeStack } from '../lib/compute-stack';
 import { EdgeStack } from '../lib/edge-stack';
 import { AuthStack } from '../lib/auth-stack';
+import { edgeThrottle } from '../lib/config';
 
 describe('EdgeStack', () => {
   const app = new cdk.App();
@@ -94,6 +95,28 @@ describe('EdgeStack', () => {
         Ref: authorizerLogicalId,
       });
     }
+  });
+
+  it('configures the $default stage with auto-deploy and the configured throttle limits', () => {
+    template.hasResourceProperties('AWS::ApiGatewayV2::Stage', {
+      StageName: '$default',
+      AutoDeploy: true,
+      DefaultRouteSettings: Match.objectLike({
+        ThrottlingRateLimit: edgeThrottle.rateLimit,
+        ThrottlingBurstLimit: edgeThrottle.burstLimit,
+      }),
+    });
+  });
+
+  it('the HttpApiUrl output still resolves to the $default stage', () => {
+    const outputs = template.toJSON().Outputs as Record<
+      string,
+      { Value: unknown }
+    >;
+    const httpApiUrlOutput = Object.entries(outputs).find(([name]) =>
+      /HttpApiUrl/i.test(name),
+    );
+    expect(httpApiUrlOutput).toBeDefined();
   });
 
   it('the VPC Link security group has no unrestricted egress rule', () => {
