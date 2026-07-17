@@ -115,19 +115,24 @@ Toda ambiguidade foi resolvida ou registrada aqui — nada fica silenciosamente 
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| AUTH-01 | P1: Bloquear acesso não autenticado — rejeição no API Gateway (sem header, token inválido/expirado) | Design | Pending |
-| AUTH-02 | P1: Bloquear acesso não autenticado — revalidação independente no guard NestJS | Design | Pending |
-| AUTH-03 | P1: Bloquear acesso não autenticado — modo `AUTH_PROVIDER=NONE`/default `COGNITO` | Design | Pending |
-| AUTH-04 | P1: Emitir/validar tokens M2M — App Client + Resource Server via CDK | Design | Pending |
-| AUTH-05 | P1: Emitir/validar tokens M2M — credenciais nunca hardcoded (Secrets Manager/CFN output) | Design | Pending |
-| AUTH-06 | P2: Throttling básico na borda (rate + burst, 429) | Design | Pending |
-| AUTH-07 | Edge cases: fail-closed em falha de JWKS, algoritmo inesperado, header malformado, config inválida | Design | Pending |
+| AUTH-01 | P1: Bloquear acesso não autenticado — rejeição no API Gateway (sem header, token inválido/expirado) | Execute | ✅ Verified |
+| AUTH-02 | P1: Bloquear acesso não autenticado — revalidação independente no guard NestJS | Execute | ✅ Verified |
+| AUTH-03 | P1: Bloquear acesso não autenticado — modo `AUTH_PROVIDER=NONE`/default `COGNITO` | Execute | ✅ Verified |
+| AUTH-04 | P1: Emitir/validar tokens M2M — App Client + Resource Server via CDK | Execute | ✅ Verified |
+| AUTH-05 | P1: Emitir/validar tokens M2M — credenciais nunca hardcoded (Secrets Manager/CFN output) | Execute | ✅ Verified |
+| AUTH-06 | P2: Throttling básico na borda (rate + burst, 429) | Execute | ✅ Verified (spec-precision gap não-bloqueante: valores numéricos de throttle não são literais no spec, ver `validation.md`) |
+| AUTH-07 | Edge cases: fail-closed em falha de JWKS, algoritmo inesperado, header malformado, config inválida | Execute | ✅ Verified |
 
 **ID format:** `AUTH-[NUMBER]`
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 7 total, 0 mapped to tasks, 7 unmapped ⚠️ (mapeamento ocorre na fase Design/Tasks)
+**Coverage:** 7 total, 7 verified. Ver `.specs/features/auth/validation.md` para evidência por critério (Verifier independente, `dbcd8e5..HEAD`).
+
+**Pós-Verify (fora das tasks T1-T16, feito na mesma sessão de Execute):**
+
+- Domínio hospedado do Cognito (`UserPoolDomain`) adicionado a `AuthStack` — sem ele o endpoint `/oauth2/token` não existia, o que impedia qualquer troca real de `client_credentials` por token (lacuna do AUTH-04 não coberta pelas tasks originais). Ver `infra/lib/auth-stack.ts` e AD-023 em `STATE.md`.
+- `GET /api-docs` (Swagger) movido para fora do path `/orders` e explicitamente excluído do `HttpJwtAuthorizer` — mesma política de "público por design" já aplicada a `/health` (edge case desta seção). Não estava coberto por nenhum AUTH-NN original; ver AD-024 em `STATE.md`.
 
 ---
 

@@ -9,7 +9,20 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/auth/design.md`
-**Status**: Draft
+**Status**: ✅ Execute concluído — T1-T16 done, Verifier: PASS (`.specs/features/auth/validation.md`, diff `dbcd8e5..HEAD` até `59ffa09`)
+
+---
+
+## Post-Verify Follow-ups (outside T1-T16, same Execute session)
+
+Two gaps were found by manual UAT after the Verifier PASS — surfaced by the user, not covered by any of T1-T16's "Done when" criteria, and not spec ACs at the time. Implemented as one-off scoped changes rather than formal tasks (each single-concern, single-gate, one commit):
+
+| # | What | Why (gap found) | Files | Commit |
+| --- | --- | --- | --- | --- |
+| F1 | `AuthStack` provisions a Cognito hosted domain (`userPool.addDomain(...)`) + `UserPoolTokenEndpoint` `CfnOutput` | `AuthStack` had User Pool + Resource Server + App Client but no `/oauth2/token` endpoint — no way to actually exchange `client_credentials` for a token (AUTH-04 AC1 was untestable end-to-end) | `infra/lib/auth-stack.ts`, `infra/test/auth-stack.test.ts` | `d7088d1` |
+| F2 | Swagger docs moved from `orders/api-docs` to `/api-docs`, excluded from `ordersAuthorizer` at the `EdgeStack` level | Docs lived under `/orders/{proxy+}`, so the JWT authorizer blocked even the Swagger UI page load — same public-by-design precedent as `/health` (spec.md Edge Cases) | `src/main.ts`, `infra/lib/edge-stack.ts`, `infra/lib/compute-stack.ts`, `infra/lib/config.ts`, `infra/test/edge-stack.test.ts` | `7a2fdbc` |
+
+Both gates passed (infra: 30 tests + `cdk synth`; app: 63 tests + `npm run build`) before commit. Not re-run through the full Verifier discrimination sensor (scope too small — config/wiring only, no new branch logic) — flagged here for traceability instead. See `spec.md`'s Requirement Traceability "Pós-Verify" note and `STATE.md` AD-023/AD-024.
 
 ---
 
