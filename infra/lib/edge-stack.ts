@@ -5,10 +5,17 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpAlbIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+import type * as cognito from 'aws-cdk-lib/aws-cognito';
 import { serviceConfig } from './config';
 
 export interface EdgeStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
+  // SPEC_DEVIATION: design.md specifies `cognito.IUserPool`, but
+  // `userPoolProviderUrl` (needed for the JWT authorizer's issuer) is only
+  // exposed on the concrete `UserPool` class, not the `IUserPool` interface.
+  userPool: cognito.UserPool;
+  userPoolClientId: string;
 }
 
 export interface FargateServiceListenerConfig {
@@ -65,6 +72,12 @@ export class EdgeStack extends cdk.Stack {
       securityGroups: [vpcLinkSecurityGroup],
     });
 
+    const ordersAuthorizer = new HttpJwtAuthorizer(
+      'OrdersAuthorizer',
+      props.userPool.userPoolProviderUrl,
+      { jwtAudience: [props.userPoolClientId] },
+    );
+
     this.httpApi = new apigwv2.HttpApi(this, 'HttpApi');
     this.httpApi.addRoutes({
       path: `${serviceConfig.publicPath}/{proxy+}`,
@@ -72,6 +85,7 @@ export class EdgeStack extends cdk.Stack {
       integration: new HttpAlbIntegration('OrdersIntegration', this.listener, {
         vpcLink,
       }),
+      authorizer: ordersAuthorizer,
     });
     this.httpApi.addRoutes({
       path: serviceConfig.publicPath,
@@ -83,6 +97,7 @@ export class EdgeStack extends cdk.Stack {
           vpcLink,
         },
       ),
+      authorizer: ordersAuthorizer,
     });
 
     new cdk.CfnOutput(this, 'HttpApiUrl', {

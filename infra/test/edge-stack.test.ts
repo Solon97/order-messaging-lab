@@ -5,11 +5,13 @@ import { FoundationStack } from '../lib/foundation-stack';
 import { DatabaseStack } from '../lib/database-stack';
 import { ComputeStack } from '../lib/compute-stack';
 import { EdgeStack } from '../lib/edge-stack';
+import { AuthStack } from '../lib/auth-stack';
 
 describe('EdgeStack', () => {
   const app = new cdk.App();
   const networkStack = new NetworkStack(app, 'TestNetworkStack3');
   const foundationStack = new FoundationStack(app, 'TestFoundationStack3');
+  const authStack = new AuthStack(app, 'TestAuthStack3');
   const databaseStack = new DatabaseStack(app, 'TestDatabaseStack3', {
     vpc: networkStack.vpc,
   });
@@ -22,6 +24,8 @@ describe('EdgeStack', () => {
   });
   const stack = new EdgeStack(app, 'TestEdgeStack', {
     vpc: networkStack.vpc,
+    userPool: authStack.userPool,
+    userPoolClientId: authStack.userPoolClient.userPoolClientId,
   });
   stack.registerFargateServiceListener(computeStack.listenerConfig);
   const template = Template.fromStack(stack);
@@ -57,6 +61,39 @@ describe('EdgeStack', () => {
     template.hasResourceProperties('AWS::ElasticLoadBalancingV2::TargetGroup', {
       HealthCheckPath: '/health',
     });
+  });
+
+  it('requires the JWT authorizer on both /orders routes', () => {
+    template.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', {
+      AuthorizerType: 'JWT',
+    });
+
+    const authorizers = template.findResources(
+      'AWS::ApiGatewayV2::Authorizer',
+      { Properties: { AuthorizerType: 'JWT' } },
+    );
+    const authorizerLogicalId = Object.keys(authorizers)[0];
+    expect(authorizerLogicalId).toBeDefined();
+
+    const proxyRoute = template.findResources('AWS::ApiGatewayV2::Route', {
+      Properties: { RouteKey: 'ANY /orders/{proxy+}' },
+    });
+    const rootRoute = template.findResources('AWS::ApiGatewayV2::Route', {
+      Properties: { RouteKey: 'ANY /orders' },
+    });
+    expect(Object.keys(proxyRoute)).toHaveLength(1);
+    expect(Object.keys(rootRoute)).toHaveLength(1);
+
+    for (const route of [
+      ...Object.values(proxyRoute),
+      ...Object.values(rootRoute),
+    ]) {
+      const properties = (route as { Properties: { AuthorizerId: unknown } })
+        .Properties;
+      expect(properties.AuthorizerId).toEqual({
+        Ref: authorizerLogicalId,
+      });
+    }
   });
 
   it('the VPC Link security group has no unrestricted egress rule', () => {
