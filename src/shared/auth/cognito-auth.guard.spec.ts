@@ -235,9 +235,9 @@ describe('CognitoAuthGuard', () => {
       headers: { authorization: `Bearer ${token}` },
     });
 
-    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(async () => {
+      await guard.canActivate(context);
+    }).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('throws UnauthorizedException for a token signed with alg=none', async () => {

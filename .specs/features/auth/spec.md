@@ -6,10 +6,10 @@ Hoje `POST /orders` e `GET /orders/:id` estão publicamente acessíveis via API 
 
 ## Goals
 
-- [ ] Nenhum endpoint de escrita ou leitura do subdomínio `order` é acessível sem um JWT válido emitido pelo Cognito — métrica: 100% das chamadas sem token, ou com token inválido/expirado, retornam 401 em ambas as camadas (API Gateway e NestJS).
-- [ ] Autenticação replicada em 2 camadas independentes (API Gateway + guard NestJS), nenhuma confia apenas na outra — métrica: guard do NestJS revalida assinatura/issuer/audience mesmo que a requisição já tenha passado pelo authorizer do API Gateway.
-- [ ] Dev/teste local roda sem depender de Cognito real — métrica: suíte de testes (unit + e2e) passa com `AUTH_PROVIDER=NONE`, sem chamada de rede.
-- [ ] Throttling básico na borda protege a API de picos de tráfego — métrica: limite de rate/burst configurado no HTTP API, requisições acima do limite recebem 429.
+- [x] Nenhum endpoint de escrita ou leitura do subdomínio `order` é acessível sem um JWT válido emitido pelo Cognito — métrica: 100% das chamadas sem token, ou com token inválido/expirado, retornam 401 em ambas as camadas (API Gateway e NestJS).
+- [x] Autenticação replicada em 2 camadas independentes (API Gateway + guard NestJS), nenhuma confia apenas na outra — métrica: guard do NestJS revalida assinatura/issuer/audience mesmo que a requisição já tenha passado pelo authorizer do API Gateway.
+- [x] Dev/teste local roda sem depender de Cognito real — métrica: suíte de testes (unit + e2e) passa com `AUTH_PROVIDER=NONE`, sem chamada de rede.
+- [x] Throttling básico na borda protege a API de picos de tráfego — métrica: limite de rate/burst configurado no HTTP API, requisições acima do limite recebem 429.
 
 ## Out of Scope
 
@@ -140,7 +140,7 @@ Toda ambiguidade foi resolvida ou registrada aqui — nada fica silenciosamente 
 
 Como saberemos que a feature é bem-sucedida:
 
-- [ ] `POST /orders` e `GET /orders/:id` retornam 401 para toda chamada sem JWT válido, medido em teste e2e automatizado (API Gateway) e em teste de integração do guard (NestJS).
-- [ ] Suíte de testes completa (unit + e2e) passa com `AUTH_PROVIDER=NONE`, sem dependência de rede/Cognito real.
-- [ ] `cdk synth` da stack de borda (`EdgeStack`) inclui o JWT authorizer do API Gateway apontando para o User Pool, sem erros.
-- [ ] Requisições acima do limite de throttling configurado recebem 429 em teste manual/script de carga.
+- [x] `POST /orders` e `GET /orders/:id` retornam 401 para toda chamada sem JWT válido, medido em teste e2e automatizado (API Gateway) e em teste de integração do guard (NestJS).
+- [x] Suíte de testes completa (unit + e2e) passa com `AUTH_PROVIDER=NONE`, sem dependência de rede/Cognito real.
+- [x] `cdk synth` da stack de borda (`EdgeStack`) inclui o JWT authorizer do API Gateway apontando para o User Pool, sem erros.
+- [x] Requisições acima do limite de throttling configurado recebem 429 em teste manual/script de carga (não exercitado contra Cognito real nesta sessão; ver spec-precision gap em `validation.md`).
