@@ -49,4 +49,27 @@ describe('AuthStack', () => {
       true,
     );
   });
+
+  it('provisions a Cognito hosted domain so the token endpoint is reachable', () => {
+    template.resourceCountIs('AWS::Cognito::UserPoolDomain', 1);
+    const domains = template.findResources('AWS::Cognito::UserPoolDomain');
+    const domainValue = JSON.stringify(
+      Object.values(domains)[0].Properties.Domain,
+    );
+    expect(domainValue).toContain('order-service-');
+  });
+
+  it('outputs the token endpoint URL, never the client secret', () => {
+    const outputs = template.toJSON().Outputs as Record<
+      string,
+      { Value: unknown }
+    >;
+    const outputNames = Object.keys(outputs);
+    const tokenEndpointName = outputNames.find((name) =>
+      /UserPoolTokenEndpoint/i.test(name),
+    );
+    expect(tokenEndpointName).toBeDefined();
+    const value = JSON.stringify(outputs[tokenEndpointName as string].Value);
+    expect(value).toMatch(/oauth2\/token/);
+  });
 });

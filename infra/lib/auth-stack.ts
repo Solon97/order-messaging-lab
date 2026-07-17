@@ -38,12 +38,22 @@ export class AuthStack extends cdk.Stack {
       },
     });
 
+    const domain = this.userPool.addDomain('AuthDomain', {
+      cognitoDomain: {
+        domainPrefix: `${serviceConfig.serviceName}-${cdk.Aws.ACCOUNT_ID}`,
+      },
+    });
+
     new cdk.CfnOutput(this, 'UserPoolId', {
       value: this.userPool.userPoolId,
     });
 
     new cdk.CfnOutput(this, 'UserPoolClientId', {
       value: this.userPoolClient.userPoolClientId,
+    });
+
+    new cdk.CfnOutput(this, 'UserPoolTokenEndpoint', {
+      value: `https://${domain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com/oauth2/token`,
     });
   }
 }
