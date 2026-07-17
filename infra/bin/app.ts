@@ -39,6 +39,9 @@ bastionStack.addDependency(databaseStack);
 
 const edgeStack = new EdgeStack(app, 'EdgeStack', {
   vpc: networkStack.vpc,
+  userPool: authStack.userPool,
+  userPoolClientId: authStack.userPoolClient.userPoolClientId,
 });
 edgeStack.addDependency(networkStack);
+edgeStack.addDependency(authStack);
 edgeStack.registerFargateServiceListener(computeStack.listenerConfig);
