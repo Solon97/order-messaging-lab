@@ -6,11 +6,13 @@ import { DatabaseStack } from '../lib/database-stack';
 import { ComputeStack } from '../lib/compute-stack';
 import { EdgeStack } from '../lib/edge-stack';
 import { BastionStack } from '../lib/bastion-stack';
+import { AuthStack } from '../lib/auth-stack';
 
 const app = new cdk.App();
 
 const foundationStack = new FoundationStack(app, 'FoundationStack');
 const networkStack = new NetworkStack(app, 'NetworkStack');
+const authStack = new AuthStack(app, 'AuthStack');
 
 const databaseStack = new DatabaseStack(app, 'DatabaseStack', {
   vpc: networkStack.vpc,
