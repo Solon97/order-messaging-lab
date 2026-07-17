@@ -16,6 +16,8 @@ export interface ComputeStackProps extends cdk.StackProps {
   imageTagParameter: ssm.IStringParameter;
   database: rds.DatabaseInstance;
   databaseSecurityGroup: ec2.ISecurityGroup;
+  userPoolId: string;
+  userPoolClientId: string;
 }
 
 export class ComputeStack extends cdk.Stack {
@@ -86,6 +88,9 @@ export class ComputeStack extends cdk.Stack {
       environment: {
         PORT: String(serviceConfig.containerPort),
         DATABASE_SSL: 'true',
+        AUTH_PROVIDER: 'COGNITO',
+        COGNITO_USER_POOL_ID: props.userPoolId,
+        COGNITO_CLIENT_ID: props.userPoolClientId,
       },
       secrets: {
         DATABASE_URL: ecs.Secret.fromSecretsManager(databaseUrlSecret),

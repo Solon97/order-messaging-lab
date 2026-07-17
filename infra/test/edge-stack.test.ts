@@ -22,6 +22,8 @@ describe('EdgeStack', () => {
     imageTagParameter: foundationStack.imageTagParameter,
     database: databaseStack.database,
     databaseSecurityGroup: databaseStack.databaseSecurityGroup,
+    userPoolId: authStack.userPool.userPoolId,
+    userPoolClientId: authStack.userPoolClient.userPoolClientId,
   });
   const stack = new EdgeStack(app, 'TestEdgeStack', {
     vpc: networkStack.vpc,

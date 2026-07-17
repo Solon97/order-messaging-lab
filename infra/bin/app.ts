@@ -25,10 +25,13 @@ const computeStack = new ComputeStack(app, 'ComputeStack', {
   imageTagParameter: foundationStack.imageTagParameter,
   database: databaseStack.database,
   databaseSecurityGroup: databaseStack.databaseSecurityGroup,
+  userPoolId: authStack.userPool.userPoolId,
+  userPoolClientId: authStack.userPoolClient.userPoolClientId,
 });
 computeStack.addDependency(foundationStack);
 computeStack.addDependency(networkStack);
 computeStack.addDependency(databaseStack);
+computeStack.addDependency(authStack);
 
 const bastionStack = new BastionStack(app, 'BastionStack', {
   vpc: networkStack.vpc,
