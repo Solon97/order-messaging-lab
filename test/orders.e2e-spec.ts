@@ -22,12 +22,14 @@ describe('OrdersController (e2e)', () => {
     // only happens after PERSISTENCE_PROVIDER is pinned to IN_MEMORY, keeping
     // this suite fast and Docker-free regardless of the module's default.
     process.env.PERSISTENCE_PROVIDER = 'IN_MEMORY';
+    process.env.AUTH_PROVIDER = 'NONE';
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     ({ AppModule } = require('@/app.module') as typeof import('@/app.module'));
   });
 
   afterAll(() => {
     delete process.env.PERSISTENCE_PROVIDER;
+    delete process.env.AUTH_PROVIDER;
   });
 
   beforeEach(async () => {

@@ -28,6 +28,7 @@ describe('Orders (Postgres adapter e2e)', () => {
 
     process.env.DATABASE_URL = container.getConnectionUri();
     process.env.PERSISTENCE_PROVIDER = 'POSTGRES';
+    process.env.AUTH_PROVIDER = 'NONE';
 
     const migrationDataSource = new DataSource({
       type: 'postgres',
@@ -65,6 +66,7 @@ describe('Orders (Postgres adapter e2e)', () => {
     await container?.stop();
     delete process.env.DATABASE_URL;
     delete process.env.PERSISTENCE_PROVIDER;
+    delete process.env.AUTH_PROVIDER;
   });
 
   it('POST /orders creates and persists the order (201, total matches manual sum)', async () => {
