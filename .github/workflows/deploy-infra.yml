@@ -6,6 +6,10 @@ on:
       - main
     paths:
       - 'infra/**'
+      - '!infra/**/*.md'
+      - '!infra/**/*.spec.ts'
+      - '!infra/**/*.test.ts'
+      - '!infra/**/__tests__/**'
 
 permissions:
   contents: read
@@ -14,7 +18,7 @@ permissions:
 # Prevents overlapping Deploy Infra runs (e.g. two quick pushes to main)
 # from applying CDK changes concurrently.
 concurrency:
-  group: deploy-infra-${{ github.ref }}
+  group: cdk-deploy
   cancel-in-progress: false
 
 env:

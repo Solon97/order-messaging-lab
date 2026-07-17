@@ -6,6 +6,12 @@ on:
       - main
     paths:
       - 'src/**'
+      - '!src/**/*.md'
+      - '!src/**/*.spec.ts'
+      - '!src/**/*.test.ts'
+      - '!src/**/__tests__/**'
+      - '!src/**/*.e2e-spec.ts'
+
 
 permissions:
   contents: read
@@ -14,7 +20,7 @@ permissions:
 # Prevents overlapping Deploy App runs (e.g. two quick pushes to main)
 # from applying CDK/ECS changes concurrently.
 concurrency:
-  group: deploy-app-${{ github.ref }}
+  group: cdk-deploy
   cancel-in-progress: false
 
 env:
