@@ -11,10 +11,9 @@ describe('Public decorator', () => {
     }
 
     const reflector = new Reflector();
-    const metadata = reflector.get<boolean>(
-      IS_PUBLIC_KEY,
-      TestController.prototype.handler,
-    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- passed by reference to Reflector.get, never invoked
+    const handler = TestController.prototype.handler;
+    const metadata = reflector.get<boolean>(IS_PUBLIC_KEY, handler);
 
     expect(metadata).toBe(true);
   });
