@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 3,
+  "next_id": 6,
   "lessons": [
     {
       "id": "L-001",
@@ -40,6 +40,60 @@
       ],
       "created": "2026-07-15T21:52:08Z",
       "last_seen": "2026-07-15T21:52:08Z"
+    },
+    {
+      "id": "L-003",
+      "key": "surviving_mutant::when testing header format validation e g required prefix like bearer assert the guard rejects before reaching downstream verification e g spy that the verifier is never called not just that the final response is a 401 a downstream fallback can mask a missing format check",
+      "text": "When testing header-format validation (e.g. required prefix like 'Bearer '), assert the guard rejects before reaching downstream verification (e.g. spy that the verifier is never called), not just that the final response is a 401 — a downstream fallback can mask a missing format check.",
+      "signal": "surviving_mutant",
+      "scope": "auth,guards",
+      "status": "candidate",
+      "features": [
+        "auth"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/shared/auth/cognito-auth.guard.ts:51 (mutation 2, validation.md Discrimination Sensor) (auth,guards)"
+      ],
+      "created": "2026-07-17T18:29:23Z",
+      "last_seen": "2026-07-17T18:29:23Z"
+    },
+    {
+      "id": "L-004",
+      "key": "spec_precision_gap::when a spec leaves a numeric threshold unspecified e g throttle rate burst still assert against a hardcoded literal in the test not the same constant the implementation imports so the test can catch an accidental change to that constant",
+      "text": "When a spec leaves a numeric threshold unspecified (e.g. throttle rate/burst), still assert against a hardcoded literal in the test, not the same constant the implementation imports, so the test can catch an accidental change to that constant.",
+      "signal": "spec_precision_gap",
+      "scope": "infra,cdk",
+      "status": "candidate",
+      "features": [
+        "auth"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "infra/test/edge-stack.test.ts:102-111 (AUTH-06, validation.md Spec-Anchored ACs) (infra,cdk)"
+      ],
+      "created": "2026-07-17T18:29:23Z",
+      "last_seen": "2026-07-17T18:29:23Z"
+    },
+    {
+      "id": "L-005",
+      "key": "spec_deviation::when a cdk l2 interface e g cognito iuserpool lacks a property the design needs e g userpoolproviderurl check whether the concrete class exposes it before designing against the interface document the narrowing as a spec deviation rather than reshaping the interface",
+      "text": "When a CDK L2 interface (e.g. cognito.IUserPool) lacks a property the design needs (e.g. userPoolProviderUrl), check whether the concrete class exposes it before designing against the interface — document the narrowing as a SPEC_DEVIATION rather than reshaping the interface.",
+      "signal": "spec_deviation",
+      "scope": "infra,cdk",
+      "status": "candidate",
+      "features": [
+        "auth"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "infra/lib/edge-stack.ts:14-16 (SPEC_DEVIATION marker) (infra,cdk)"
+      ],
+      "created": "2026-07-17T18:29:23Z",
+      "last_seen": "2026-07-17T18:29:23Z"
     }
   ]
 }

@@ -99,12 +99,12 @@ T15 → T16
 
 **Done when**:
 
-- [ ] `AuthStack` compiles with no TypeScript errors
-- [ ] User Pool, Resource Server (1 scope), App Client (`clientCredentials: true`, `generateSecret: true`) are created
-- [ ] Client secret is never written to a `CfnOutput` (only `userPoolId`/`userPoolClientId` are)
-- [ ] Unit test asserts `AWS::Cognito::UserPool`, `AWS::Cognito::UserPoolResourceServer`, `AWS::Cognito::UserPoolClient` (with `AllowedOAuthFlows: ['client_credentials']`) via `Template.fromStack`
-- [ ] Gate check passes: `cd infra && npm test`
-- [ ] Test count: existing infra test count + new `auth-stack.test.ts` (report actual number in commit)
+- [x] `AuthStack` compiles with no TypeScript errors
+- [x] User Pool, Resource Server (1 scope), App Client (`clientCredentials: true`, `generateSecret: true`) are created
+- [x] Client secret is never written to a `CfnOutput` (only `userPoolId`/`userPoolClientId` are)
+- [x] Unit test asserts `AWS::Cognito::UserPool`, `AWS::Cognito::UserPoolResourceServer`, `AWS::Cognito::UserPoolClient` (with `AllowedOAuthFlows: ['client_credentials']`) via `Template.fromStack`
+- [x] Gate check passes: `cd infra && npm test`
+- [x] Test count: existing infra test count + new `auth-stack.test.ts` (report actual number in commit)
 
 **Tests**: unit
 **Gate**: quick (infra)
@@ -128,9 +128,9 @@ T15 → T16
 
 **Done when**:
 
-- [ ] `authStack` variable instantiated, no `addDependency` needed (no shared resources with Network/Database stacks)
-- [ ] `npx cdk synth` succeeds with `AuthStack` present in the synthesized app
-- [ ] Gate check passes: `cd infra && npx cdk synth`
+- [x] `authStack` variable instantiated, no `addDependency` needed (no shared resources with Network/Database stacks)
+- [x] `npx cdk synth` succeeds with `AuthStack` present in the synthesized app
+- [x] Gate check passes: `cd infra && npx cdk synth`
 
 **Tests**: none (wiring only, covered by build gate)
 **Gate**: build (infra)
@@ -154,10 +154,10 @@ T15 → T16
 
 **Done when**:
 
-- [ ] Both `/orders` routes require the JWT authorizer (`AuthorizerType: JWT` in synthesized template)
-- [ ] Unit test asserts `AWS::ApiGatewayV2::Authorizer` with `AuthorizerType: JWT` and `AWS::ApiGatewayV2::Route` referencing it via `AuthorizerId`
-- [ ] Existing `edge-stack.test.ts` assertions (ALB internal, 404 default action, `/health` target group path) still pass unmodified
-- [ ] Gate check passes: `cd infra && npm test`
+- [x] Both `/orders` routes require the JWT authorizer (`AuthorizerType: JWT` in synthesized template)
+- [x] Unit test asserts `AWS::ApiGatewayV2::Authorizer` with `AuthorizerType: JWT` and `AWS::ApiGatewayV2::Route` referencing it via `AuthorizerId`
+- [x] Existing `edge-stack.test.ts` assertions (ALB internal, 404 default action, `/health` target group path) still pass unmodified
+- [x] Gate check passes: `cd infra && npm test`
 
 **Tests**: unit
 **Gate**: quick (infra)
@@ -181,10 +181,10 @@ T15 → T16
 
 **Done when**:
 
-- [ ] `HttpApiUrl` `CfnOutput` still resolves to the `$default` stage (no URL/behavior regression)
-- [ ] Unit test asserts `AWS::ApiGatewayV2::Stage` with `StageName: '$default'`, `AutoDeploy: true`, and `DefaultRouteSettings`/`RouteSettings` throttle values matching config
-- [ ] `cdk diff` (or synth output review) confirms no unintended resource replacement of the existing stage
-- [ ] Gate check passes: `cd infra && npm test && npx cdk synth`
+- [x] `HttpApiUrl` `CfnOutput` still resolves to the `$default` stage (no URL/behavior regression)
+- [x] Unit test asserts `AWS::ApiGatewayV2::Stage` with `StageName: '$default'`, `AutoDeploy: true`, and `DefaultRouteSettings`/`RouteSettings` throttle values matching config
+- [x] `cdk diff` (or synth output review) confirms no unintended resource replacement of the existing stage
+- [x] Gate check passes: `cd infra && npm test && npx cdk synth`
 
 **Tests**: unit
 **Gate**: full (infra)
@@ -208,8 +208,8 @@ T15 → T16
 
 **Done when**:
 
-- [ ] `npx cdk synth` succeeds end-to-end with `AuthStack` → `EdgeStack` dependency present
-- [ ] Gate check passes: `cd infra && npx cdk synth`
+- [x] `npx cdk synth` succeeds end-to-end with `AuthStack` → `EdgeStack` dependency present
+- [x] Gate check passes: `cd infra && npx cdk synth`
 
 **Tests**: none (wiring only)
 **Gate**: build (infra)
@@ -233,9 +233,9 @@ T15 → T16
 
 **Done when**:
 
-- [ ] Unit test asserts the ECS `TaskDefinition` container has `AUTH_PROVIDER`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID` in its `Environment` list
-- [ ] Existing `compute-stack.test.ts` assertions still pass unmodified
-- [ ] Gate check passes: `cd infra && npm test && npx cdk synth`
+- [x] Unit test asserts the ECS `TaskDefinition` container has `AUTH_PROVIDER`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID` in its `Environment` list
+- [x] Existing `compute-stack.test.ts` assertions still pass unmodified
+- [x] Gate check passes: `cd infra && npm test && npx cdk synth`
 
 **Tests**: unit
 **Gate**: full (infra)
@@ -259,9 +259,9 @@ T15 → T16
 
 **Done when**:
 
-- [ ] `aws-jwt-verify` present in `package.json` dependencies (not devDependencies — used at runtime)
-- [ ] `npm run build` succeeds
-- [ ] Gate check passes: `npm run build`
+- [x] `aws-jwt-verify` present in `package.json` dependencies (not devDependencies — used at runtime)
+- [x] `npm run build` succeeds
+- [x] Gate check passes: `npm run build`
 
 **Tests**: none (dependency-only change)
 **Gate**: build
@@ -285,9 +285,9 @@ T15 → T16
 
 **Done when**:
 
-- [ ] `Public()` decorator exported, sets metadata key readable by `Reflector.getAllAndOverride`
-- [ ] Unit test verifies the decorator attaches the expected metadata to a test class/handler
-- [ ] Gate check passes: `npm test`
+- [x] `Public()` decorator exported, sets metadata key readable by `Reflector.getAllAndOverride`
+- [x] Unit test verifies the decorator attaches the expected metadata to a test class/handler
+- [x] Gate check passes: `npm test`
 
 **Tests**: unit
 **Gate**: quick (app)
@@ -311,9 +311,9 @@ T15 → T16
 
 **Done when**:
 
-- [ ] `NoopAuthGuard.canActivate()` always returns `true`
-- [ ] Unit test confirms `canActivate` returns `true` for an arbitrary `ExecutionContext`
-- [ ] Gate check passes: `npm test`
+- [x] `NoopAuthGuard.canActivate()` always returns `true`
+- [x] Unit test confirms `canActivate` returns `true` for an arbitrary `ExecutionContext`
+- [x] Gate check passes: `npm test`
 
 **Tests**: unit
 **Gate**: quick (app)
@@ -337,12 +337,12 @@ T15 → T16
 
 **Done when**:
 
-- [ ] Guard returns `true` without verifying when `@Public()` is present
-- [ ] Guard throws `UnauthorizedException` for: missing header, malformed header (no `Bearer ` prefix), expired token, invalid signature, wrong issuer/audience, unexpected algorithm, JWKS-fetch failure — each with a dedicated unit test using a locally-generated RSA test keypair (self-signed JWTs) and a mocked JWKS response (per design Risk mitigation — no dependency on real Cognito in tests)
-- [ ] Guard sets `request.authClientId` to the verified token's `client_id` claim on success
-- [ ] Every listed edge case from spec.md (`## Edge Cases`) has a corresponding test
-- [ ] Gate check passes: `npm test`
-- [ ] Test count: report actual number in commit (no silent deletions)
+- [x] Guard returns `true` without verifying when `@Public()` is present
+- [x] Guard throws `UnauthorizedException` for: missing header, malformed header (no `Bearer ` prefix), expired token, invalid signature, wrong issuer/audience, unexpected algorithm, JWKS-fetch failure — each with a dedicated unit test using a locally-generated RSA test keypair (self-signed JWTs) and a mocked JWKS response (per design Risk mitigation — no dependency on real Cognito in tests)
+- [x] Guard sets `request.authClientId` to the verified token's `client_id` claim on success
+- [x] Every listed edge case from spec.md (`## Edge Cases`) has a corresponding test
+- [x] Gate check passes: `npm test`
+- [x] Test count: report actual number in commit (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick (app)
@@ -366,9 +366,9 @@ T15 → T16
 
 **Done when**:
 
-- [ ] `AUTH_PROVIDER=NONE` resolves to `NoopAuthGuard`, `AUTH_PROVIDER=COGNITO` (or unset) resolves to `CognitoAuthGuard`, any other value throws at module instantiation
-- [ ] Unit test covers all three branches
-- [ ] Gate check passes: `npm test`
+- [x] `AUTH_PROVIDER=NONE` resolves to `NoopAuthGuard`, `AUTH_PROVIDER=COGNITO` (or unset) resolves to `CognitoAuthGuard`, any other value throws at module instantiation
+- [x] Unit test covers all three branches
+- [x] Gate check passes: `npm test`
 
 **Tests**: unit
 **Gate**: quick (app)
@@ -392,10 +392,10 @@ T15 → T16
 
 **Done when**:
 
-- [ ] `AppModule` imports `AuthModule`
-- [ ] `HealthController` carries `@Public()`
-- [ ] Existing `health.controller.spec.ts` still passes unmodified
-- [ ] Gate check passes: `npm test`
+- [x] `AppModule` imports `AuthModule`
+- [x] `HealthController` carries `@Public()`
+- [x] Existing `health.controller.spec.ts` still passes unmodified
+- [x] Gate check passes: `npm test`
 
 **Tests**: unit
 **Gate**: quick (app)
@@ -419,8 +419,8 @@ T15 → T16
 
 **Done when**:
 
-- [ ] All 3 existing e2e specs pass with `AUTH_PROVIDER=NONE` pinned, unaffected by the new default
-- [ ] Gate check passes: `npm run test:e2e`
+- [x] All 3 existing e2e specs pass with `AUTH_PROVIDER=NONE` pinned, unaffected by the new default
+- [x] Gate check passes: `npm run test:e2e`
 
 **Tests**: e2e
 **Gate**: full (app)
@@ -444,9 +444,9 @@ T15 → T16
 
 **Done when**:
 
-- [ ] 3 new e2e tests pass (`/orders` POST 401, `/orders/:id` GET 401, `/health` 200)
-- [ ] Gate check passes: `npm run test:e2e`
-- [ ] Test count: report actual number in commit (no silent deletions)
+- [x] 3 new e2e tests pass (`/orders` POST 401, `/orders/:id` GET 401, `/health` 200)
+- [x] Gate check passes: `npm run test:e2e`
+- [x] Test count: report actual number in commit (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full (app)
@@ -470,8 +470,8 @@ T15 → T16
 
 **Done when**:
 
-- [ ] Auth is "Fase 1", messaging-flow is "Fase 2", RabbitMQ is "Fase 3", milestones renumbered consistently
-- [ ] No dangling reference to the old numbering remains in the file
+- [x] Auth is "Fase 1", messaging-flow is "Fase 2", RabbitMQ is "Fase 3", milestones renumbered consistently
+- [x] No dangling reference to the old numbering remains in the file
 
 **Tests**: none (documentation)
 **Gate**: build (n/a — manual review)
@@ -495,8 +495,8 @@ T15 → T16
 
 **Done when**:
 
-- [ ] New `AD-NNN` entries appended (continuing from the last existing number), each with Motivo
-- [ ] `## Handoff` reflects `auth` feature Execute completion and next step (Verifier, then resume `messaging-flow` Design)
+- [x] New `AD-NNN` entries appended (continuing from the last existing number), each with Motivo
+- [x] `## Handoff` reflects `auth` feature Execute completion and next step (Verifier, then resume `messaging-flow` Design)
 
 **Tests**: none (documentation)
 **Gate**: build (n/a — manual review)
