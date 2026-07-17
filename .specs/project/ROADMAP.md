@@ -7,11 +7,11 @@
 **Status:** ✅ Concluída (2026-07-14). 22 tasks implementadas (T1-T22), Verificador independente: PASS (54 testes, 0 falhas, lint de arquitetura 0 violações). Ver `.specs/features/domain-foundation/validation.md`.
 **Regra de deploy (AWS):** o deploy público desta fase segue o padrão de `aws-reference.md` (ECS Fargate + ALB + API Gateway HTTP API + ECR/OIDC via GitHub Actions), estendido com RDS Postgres + Secrets Manager (não cobertos pela referência) — ver `.specs/features/aws-deploy/`. Não é replicação literal: IaC vive neste mesmo repo (mono-repo), não em repo de IaC separado como no exemplo da referência (decisão registrada em `aws-deploy/context.md`).
 
-## Fase 1 — Autenticação e autorização (Cognito M2M)
+## Fase 1 — Autenticação (Cognito M2M)
 
-**Objetivo técnico:** fechar a lacuna de autenticação prevista no PRD (§5.4, defesa em profundidade) usando AWS Cognito como emissor de token, fluxo machine-to-machine (`client_credentials`, sem login de usuário final) — validado em 2 camadas independentes: API Gateway (authorizer JWT nativo) e guard no NestJS.
+**Objetivo técnico:** fechar a lacuna de autenticação prevista no PRD (§5.4, defesa em profundidade) usando AWS Cognito como emissor de token, fluxo machine-to-machine (`client_credentials`, sem login de usuário final) — validado em 2 camadas independentes: API Gateway (authorizer JWT nativo) e guard no NestJS. Autorização (diferenciação de permissões por escopo/client) está explicitamente fora de escopo desta fase — ver Out of Scope em `.specs/features/auth/spec.md` e AD-021 (`STATE.md`); só existe "autenticado ou não".
 **Critério de saída:** `POST /orders` e `GET /orders/:id` rejeitam com 401 toda chamada sem JWT válido do Cognito, em ambas as camadas; dev/teste local roda sem depender de Cognito real (`AUTH_PROVIDER=NONE`); throttling básico configurado na borda.
-**Status:** Specify + Design + Tasks concluídos (`.specs/features/auth/`) — Execute ainda não iniciado.
+**Status:** ✅ Concluída (2026-07-17). Specify + Design + Tasks + Execute + Verify concluídos (`.specs/features/auth/`), incluindo 2 follow-ups pós-Verify (domínio Cognito e exclusão do Swagger do authorizer — AD-023/AD-024). Verificador independente: PASS, ver `.specs/features/auth/validation.md`.
 **Regra de deploy (AWS):** nova `AuthStack` dedicada (Cognito User Pool + Resource Server + App Client), sem dependência de VPC/DB — estende o padrão de AD-017 ("nova stack quando o recurso não se encaixa no ciclo de vida de nenhuma existente"). `EdgeStack` ganha o `HttpJwtAuthorizer` nativo do API Gateway apontando para o User Pool (sem Lambda authorizer); `ComputeStack` recebe `userPoolId`/`userPoolClientId` como env vars do container (sem novo secret — verificação de JWT não exige client secret). Detalhe completo em `.specs/features/auth/design.md`.
 
 ## Fase 2 — Mensageria com SNS/SQS e fluxo assíncrono completo
@@ -33,7 +33,7 @@
 | Marco | Critério | Dependência |
 |---|---|---|
 | M0 — Domínio fundacional pronto | DoD Fase 0 | ✅ Atingido (2026-07-14) |
-| M1 — Autenticação Cognito funcional | DoD Fase 1 | M0 |
+| M1 — Autenticação Cognito funcional | DoD Fase 1 | ✅ Atingido (2026-07-17) |
 | M2 — Fluxo assíncrono funcional | DoD Fase 2 (incl. exceções) | M1 |
 | M3 — Broker intercambiável comprovado | DoD Fase 3 | M2 |
 

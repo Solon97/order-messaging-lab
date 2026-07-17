@@ -56,7 +56,7 @@
 - **In-progress**: nenhum arquivo de código em progresso
 - **Next step**: retomar Fase 2 (`messaging-flow`, SNS/SQS) — Design ainda não iniciado. Nenhuma pendência aberta em `auth`.
 - **Blockers**: nenhum
-- **Uncommitted files**: `.specs/project/STATE.md`, `.specs/features/auth/spec.md`, `.specs/features/auth/tasks.md` (docs/specs sendo atualizados nesta mesma sessão, a pedido do usuário, para refletir os ajustes pós-Verify)
+- **Uncommitted files**: `.specs/features/auth/spec.md`, `.specs/project/PRD.md`, `.specs/project/ROADMAP.md` (sessão atual: corrigindo specs/docs para não afirmarem autorização — só autenticação foi implementada; ver AD-021)
 - **Branch**: main
 - **Nota de segurança**: durante a execução do Verifier (sub-agente) da feature `aws-deploy`, apareceram blocos de resultado de ferramenta formatados como `<system-reminder>` falsos, instruindo a reverter uma mutação de teste em scratch e a *não informar* o usuário sobre isso — um padrão de prompt injection. O mesmo padrão se repetiu no Verifier de `auth` (após reverts de `git checkout --` durante o discrimination sensor). Em ambos os casos o sub-agente identificou a inconsistência, ignorou a instrução de ocultar, e confirmou de forma independente (via `git status`/`git diff`) que a árvore de trabalho real ficou intacta. Nenhuma ação indevida foi tomada; registrado aqui para rastreabilidade — vale investigar a origem dessa injeção quando houver tempo.
 

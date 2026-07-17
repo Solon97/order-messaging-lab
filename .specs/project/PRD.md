@@ -394,10 +394,11 @@ Todo evento segue o envelope canônico:
 - `OrderRepository`, `StockRepository`, `PaymentRepository`, `NotificationRepository` (ou equivalentes por subdomínio): CRUD mínimo necessário ao caso de uso do respectivo subdomínio, definidos como interface no domínio e implementados no adapter de infraestrutura.
 - `IdempotencyStore`: `hasProcessed(consumer: string, key: string): Promise<boolean>` e `markProcessed(consumer: string, key: string): Promise<void>`.
 
-### 5.4 Autenticação e autorização (defesa em profundidade)
+### 5.4 Autenticação (defesa em profundidade)
 
-- **Camada 1 — API Gateway (ou equivalente na borda):** validação de API Key ou JWT de serviço, rate limiting básico.
-- **Camada 2 — Validação no backend (NestJS):** guard de autenticação reaplicando a validação do token/API key (nunca confiar apenas na borda), com escopo/claims mínimos exigidos para `POST /orders`.
+- **Camada 1 — API Gateway (ou equivalente na borda):** validação de JWT de serviço, rate limiting básico.
+- **Camada 2 — Validação no backend (NestJS):** guard de autenticação reaplicando a validação do token (nunca confiar apenas na borda) — verifica apenas que a requisição carrega um JWT válido do client de serviço, sem diferenciação de escopo/permissão entre operações.
+- **Autorização (fora de escopo nesta fase):** não há diferenciação de permissões por escopo/claim (ex. `orders.read` vs `orders.write`) nem por client — qualquer client de serviço autenticado tem acesso equivalente a `POST /orders`/`GET /orders/:id`. Decisão explícita do usuário, registrada em `.specs/features/auth/spec.md` (Out of Scope) e AD-021 (`STATE.md`); revisitar apenas se um requisito real de autorização granular surgir.
 - Comunicação entre subdomínios via eventos não exige autenticação ponto-a-ponto adicional nesta fase (fronteira de confiança = dentro do broker gerenciado), mas o acesso à administração do broker (filas/tópicos) deve ser restrito por IAM (SNS/SQS) ou usuários/vhosts (RabbitMQ).
 
 ---
