@@ -99,6 +99,26 @@ describe('EdgeStack', () => {
     }
   });
 
+  it('exposes /api-docs routes without the JWT authorizer (public docs)', () => {
+    const proxyRoute = template.findResources('AWS::ApiGatewayV2::Route', {
+      Properties: { RouteKey: 'ANY /api-docs/{proxy+}' },
+    });
+    const rootRoute = template.findResources('AWS::ApiGatewayV2::Route', {
+      Properties: { RouteKey: 'ANY /api-docs' },
+    });
+    expect(Object.keys(proxyRoute)).toHaveLength(1);
+    expect(Object.keys(rootRoute)).toHaveLength(1);
+
+    for (const route of [
+      ...Object.values(proxyRoute),
+      ...Object.values(rootRoute),
+    ]) {
+      const properties = (route as { Properties: { AuthorizerId?: unknown } })
+        .Properties;
+      expect(properties.AuthorizerId).toBeUndefined();
+    }
+  });
+
   it('configures the $default stage with auto-deploy and the configured throttle limits', () => {
     template.hasResourceProperties('AWS::ApiGatewayV2::Stage', {
       StageName: '$default',

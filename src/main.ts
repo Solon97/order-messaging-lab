@@ -15,7 +15,10 @@ async function bootstrap() {
     .setVersion('0.1')
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('orders/api-docs', app, swaggerDocument);
+  SwaggerModule.setup('api-docs', app, swaggerDocument, {
+    jsonDocumentUrl: 'api-docs/json',
+    yamlDocumentUrl: 'api-docs/yaml',
+  });
 
   await app.listen(process.env.PORT ?? 3000);
 }

@@ -135,6 +135,7 @@ export class ComputeStack extends cdk.Stack {
       service: this.service,
       containerPort: serviceConfig.containerPort,
       publicPath: serviceConfig.publicPath,
+      docsPath: serviceConfig.docsPath,
       healthCheckPath: serviceConfig.healthCheckPath,
       priority: 1,
     };

@@ -3,6 +3,7 @@ export interface ServiceConfig {
   serviceName: string;
   containerPort: number;
   publicPath: string;
+  docsPath: string;
   healthCheckPath: string;
   cpu: number;
   memoryLimitMiB: number;
@@ -19,6 +20,7 @@ export const serviceConfig: ServiceConfig = {
   serviceName: 'order-service',
   containerPort: 3000,
   publicPath: '/orders',
+  docsPath: '/api-docs',
   healthCheckPath: '/health',
   cpu: 512,
   memoryLimitMiB: 1024,

@@ -22,6 +22,7 @@ export interface FargateServiceListenerConfig {
   service: ecs.FargateService;
   containerPort: number;
   publicPath: string;
+  docsPath: string;
   healthCheckPath: string;
   priority: number;
 }
@@ -107,6 +108,28 @@ export class EdgeStack extends cdk.Stack {
       authorizer: ordersAuthorizer,
     });
 
+    // Docs (Swagger UI) are operational tooling, not order-subdomain business
+    // data — same public-by-design precedent as /health. Deliberately not
+    // covered by ordersAuthorizer.
+    this.httpApi.addRoutes({
+      path: `${serviceConfig.docsPath}/{proxy+}`,
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new HttpAlbIntegration('DocsIntegration', this.listener, {
+        vpcLink,
+      }),
+    });
+    this.httpApi.addRoutes({
+      path: serviceConfig.docsPath,
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new HttpAlbIntegration(
+        'DocsRootIntegration',
+        this.listener,
+        {
+          vpcLink,
+        },
+      ),
+    });
+
     new cdk.CfnOutput(this, 'HttpApiUrl', {
       value: defaultStage.url,
     });
@@ -118,7 +141,10 @@ export class EdgeStack extends cdk.Stack {
     this.listener.addTargets('OrdersRoute', {
       priority: config.priority,
       conditions: [
-        elbv2.ListenerCondition.pathPatterns([`${config.publicPath}*`]),
+        elbv2.ListenerCondition.pathPatterns([
+          `${config.publicPath}*`,
+          `${config.docsPath}*`,
+        ]),
       ],
       port: config.containerPort,
       protocol: elbv2.ApplicationProtocol.HTTP,
