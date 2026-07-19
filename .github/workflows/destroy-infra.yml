@@ -1,6 +1,10 @@
 name: Destroy Infra
 
-# Manual only. Tears down every cost-generating stack EXCEPT FoundationStack,
+# Runs manually (always destroys, no confirmation prompt — dispatching it by
+# hand is confirmation enough), or every 30 minutes to auto-destroy when the
+# repo has been idle (no commits on main in the last hour) — a scheduled run
+# backs off if there was recent activity, so it doesn't yank the environment
+# out from under active development. Tears down every cost-generating stack EXCEPT FoundationStack,
 # which owns the ECR repository (and its current image), the image-tag SSM
 # parameter, and the GitHub OIDC deploy/push roles this workflow itself
 # authenticates with. Keeping it alive means:
@@ -8,13 +12,12 @@ name: Destroy Infra
 #   - `github-actions-cdk-deploy` / `github-actions-*-ecr-push` still exist,
 #     so this workflow (and future deploys) keep working without needing to
 #     re-bootstrap roles by hand
-# Recreating the destroyed stacks is done locally via infra/scripts/bring-up.sh.
+# Recreating the destroyed stacks is done via the "Bring Up Environment"
+# workflow (bring-up.yml).
 on:
+  schedule:
+    - cron: '*/30 * * * *'
   workflow_dispatch:
-    inputs:
-      confirm:
-        description: 'Type "destroy" to confirm tearing down NetworkStack, AuthStack, DatabaseStack, ComputeStack, BastionStack and EdgeStack'
-        required: true
 
 permissions:
   contents: read
@@ -29,16 +32,44 @@ env:
   CDK_DEPLOY_ROLE_ARN: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-cdk-deploy
 
 jobs:
-  destroy-infra:
+  # Manual runs always destroy — dispatching this workflow by hand is
+  # confirmation enough. Scheduled runs instead check whether main has had a
+  # commit in the last hour — if so, the repo looks active and the run backs
+  # off. Kept as its own job (rather than a per-step `if`) so the decision is
+  # made once and the destroy job below can gate on it with a single `if`.
+  check:
     runs-on: ubuntu-latest
+    outputs:
+      should_destroy: ${{ steps.gate.outputs.should_destroy }}
     steps:
-      - name: Check confirmation input
+      - name: Checkout
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/checkout@v4
+
+      - name: Decide whether to destroy
+        id: gate
         run: |
-          if [ "${{ github.event.inputs.confirm }}" != "destroy" ]; then
-            echo "Confirmation input must be exactly 'destroy'. Aborting."
-            exit 1
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_destroy=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
+          LAST_COMMIT_EPOCH=$(git log -1 --format=%ct)
+          NOW_EPOCH=$(date +%s)
+          DIFF=$((NOW_EPOCH - LAST_COMMIT_EPOCH))
+          if [ "$DIFF" -lt 3600 ]; then
+            echo "Last commit on main was ${DIFF}s ago (< 1h) — repo looks active, skipping destroy."
+            echo "should_destroy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Last commit on main was ${DIFF}s ago (>= 1h) — repo looks idle, destroying."
+            echo "should_destroy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  destroy-infra:
+    needs: check
+    if: needs.check.outputs.should_destroy == 'true'
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
 
