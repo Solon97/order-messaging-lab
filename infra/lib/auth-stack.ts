@@ -15,7 +15,7 @@ export class AuthStack extends cdk.Stack {
 
     this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: `${serviceConfig.serviceName}-users`,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     const accessScope = new cognito.ResourceServerScope({

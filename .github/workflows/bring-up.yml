@@ -1,0 +1,29 @@
+name: Bring Up Environment
+
+# Manual "reconnect everything" button: recreates the stacks torn down by
+# destroy-infra.yml (deploy-infra.yml), then builds/publishes a fresh app
+# image and runs pending migrations against the new database (deploy-app.yml).
+# FoundationStack (ECR repo/image, OIDC roles, image-tag parameter) is never
+# touched by destroy, so both reused workflows work exactly as they do on a
+# normal push to main.
+#
+# After this finishes, run `infra/scripts/print-outputs.sh` locally to list
+# every URL/ID needed to reconnect to the environment.
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-infra:
+    uses: ./.github/workflows/deploy-infra.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      id-token: write
+
+  deploy-app:
+    needs: deploy-infra
+    uses: ./.github/workflows/deploy-app.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      id-token: write

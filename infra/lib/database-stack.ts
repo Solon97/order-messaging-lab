@@ -51,5 +51,19 @@ export class DatabaseStack extends cdk.Stack {
       parameterGroup,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
+
+    new cdk.CfnOutput(this, 'DatabaseEndpoint', {
+      value: this.database.dbInstanceEndpointAddress,
+      description: 'RDS endpoint address, reachable via the bastion SSM tunnel',
+    });
+
+    new cdk.CfnOutput(this, 'DatabasePort', {
+      value: this.database.dbInstanceEndpointPort,
+    });
+
+    new cdk.CfnOutput(this, 'DatabaseSecretArn', {
+      value: this.database.secret!.secretArn,
+      description: 'Secrets Manager ARN holding the generated DB credentials',
+    });
   }
 }

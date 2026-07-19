@@ -35,6 +35,11 @@ export class FoundationStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    new cdk.CfnOutput(this, 'RepositoryUri', {
+      value: this.repository.repositoryUri,
+      description: 'ECR repository URI for the order-service image',
+    });
+
     this.imageTagParameter = new ssm.StringParameter(
       this,
       'ImageTagParameter',

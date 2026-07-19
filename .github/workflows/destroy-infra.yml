@@ -1,0 +1,74 @@
+name: Destroy Infra
+
+# Manual only. Tears down every cost-generating stack EXCEPT FoundationStack,
+# which owns the ECR repository (and its current image), the image-tag SSM
+# parameter, and the GitHub OIDC deploy/push roles this workflow itself
+# authenticates with. Keeping it alive means:
+#   - the ECR repo + latest image survive the teardown
+#   - `github-actions-cdk-deploy` / `github-actions-*-ecr-push` still exist,
+#     so this workflow (and future deploys) keep working without needing to
+#     re-bootstrap roles by hand
+# Recreating the destroyed stacks is done locally via infra/scripts/bring-up.sh.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to confirm tearing down NetworkStack, AuthStack, DatabaseStack, ComputeStack, BastionStack and EdgeStack'
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: cdk-deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  CDK_DEPLOY_ROLE_ARN: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-cdk-deploy
+
+jobs:
+  destroy-infra:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check confirmation input
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "destroy" ]; then
+            echo "Confirmation input must be exactly 'destroy'. Aborting."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Configure AWS credentials (CDK deploy role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.CDK_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install infra dependencies
+        working-directory: infra
+        run: npm ci
+
+      # Explicit list (not --all) so FoundationStack is never targeted.
+      # Order doesn't strictly matter — cdk destroy resolves dependencies —
+      # but listing dependents before their dependencies keeps the plan readable.
+      - name: Destroy stacks
+        working-directory: infra
+        run: |
+          npx cdk destroy \
+            EdgeStack \
+            ComputeStack \
+            BastionStack \
+            DatabaseStack \
+            AuthStack \
+            NetworkStack \
+            --force

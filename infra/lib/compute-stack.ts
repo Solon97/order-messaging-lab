@@ -76,7 +76,7 @@ export class ComputeStack extends cdk.Stack {
 
     const logGroup = new logs.LogGroup(this, 'LogGroup', {
       retention: logs.RetentionDays.THREE_DAYS,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     const container = taskDefinition.addContainer(serviceConfig.serviceName, {

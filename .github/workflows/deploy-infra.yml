@@ -10,6 +10,9 @@ on:
       - '!infra/**/*.spec.ts'
       - '!infra/**/*.test.ts'
       - '!infra/**/__tests__/**'
+  # Lets bring-up.yml call this workflow directly (e.g. to recreate stacks
+  # torn down by destroy-infra.yml) without needing a push to main.
+  workflow_call:
 
 permissions:
   contents: read

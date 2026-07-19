@@ -11,6 +11,10 @@ on:
       - '!src/**/*.test.ts'
       - '!src/**/__tests__/**'
       - '!src/**/*.e2e-spec.ts'
+  # Lets bring-up.yml call this workflow directly (e.g. to build/publish a
+  # fresh image and run migrations after destroy-infra.yml + a fresh infra
+  # deploy) without needing a push to main.
+  workflow_call:
 
 
 permissions:
