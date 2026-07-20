@@ -1,9 +1,9 @@
 # PRD — order-messaging-lab
 
-**Versão:** 0.1
+**Versão:** 0.2
 **Autor:** PM/Arquitetura (gerado para kickoff técnico)
 **Status:** Aprovado
-**Última atualização:** 2026-07-13
+**Última atualização:** 2026-07-20 — sincronizado com decisões já registradas em `.specs/project/STATE.md` e `.specs/project/ROADMAP.md` (nova fase de Autenticação, decisões pendentes resolvidas, perguntas em aberto respondidas). Para status/datas de execução atualizados, `ROADMAP.md` é a fonte viva; este documento registra o requisito.
 
 ---
 
@@ -15,11 +15,12 @@
 
 O projeto não é um produto comercial: é um ambiente controlado para validar decisões arquiteturais que aparecem em sistemas reais de e-commerce/marketplace — consistência eventual, idempotência, contratos de evento versionados, troca de broker de mensageria sem reescrever regras de domínio, observabilidade fim a fim e resiliência a falhas (retry, DLQ, timeout).
 
-O lab evolui em 3 fases incrementais, cada uma entregando um sistema funcional e testável:
+O lab evolui em 4 fases incrementais, cada uma entregando um sistema funcional e testável:
 
 - **Fase 0** — fundação de domínio + API síncrona de criação de pedido (sem mensageria ainda).
-- **Fase 1** — fluxo assíncrono completo via SNS/SQS.
-- **Fase 2** — RabbitMQ como adapter alternativo/intercambiável, provando o isolamento do domínio em relação à tecnologia de mensageria.
+- **Fase 1** — autenticação machine-to-machine via AWS Cognito (`client_credentials`), em defesa em profundidade (API Gateway + guard NestJS), sem autorização por escopo. Inserida entre a fundação de domínio e a mensageria — decisão do usuário registrada em `.specs/features/auth/spec.md`.
+- **Fase 2** — fluxo assíncrono completo via SNS/SQS.
+- **Fase 3** — RabbitMQ como adapter alternativo/intercambiável, provando o isolamento do domínio em relação à tecnologia de mensageria.
 
 ### 1.2 Problema que o projeto resolve
 
@@ -44,14 +45,15 @@ Times que adotam arquitetura orientada a eventos frequentemente cometem os mesmo
 | Fase | Objetivo de negócio (simulado) | Objetivo técnico |
 |---|---|---|
 | Fase 0 | Permitir criação de pedido com resposta imediata ao cliente | Estabelecer domínio (entities, value objects, casos de uso), portas (ports) e primeiro adapter HTTP; sem mensageria |
-| Fase 1 | Processar pedido de forma assíncrona e resiliente, com etapas independentes (estoque, pagamento, notificação) | Implementar coreografia via SNS/SQS; publishers/consumers desacoplados; idempotência; DLQ; observabilidade |
-| Fase 2 | Garantir que a solução não fique refém de um único fornecedor de mensageria (portabilidade) | Implementar adapter RabbitMQ intercambiável via porta `MessagePublisher`/`MessageConsumer`, sem tocar em domínio ou casos de uso |
+| Fase 1 | Garantir que só clientes de serviço autorizados criem/consultem pedidos | Emissão/validação de JWT via AWS Cognito M2M, revalidado em 2 camadas (API Gateway + guard NestJS); sem autorização por escopo |
+| Fase 2 | Processar pedido de forma assíncrona e resiliente, com etapas independentes (estoque, pagamento, notificação) | Implementar coreografia via SNS/SQS; publishers/consumers desacoplados; idempotência; DLQ; observabilidade |
+| Fase 3 | Garantir que a solução não fique refém de um único fornecedor de mensageria (portabilidade) | Implementar adapter RabbitMQ intercambiável via porta `MessagePublisher`/`MessageConsumer`, sem tocar em domínio ou casos de uso |
 
 ### 2.2 Não objetivos (explícitos)
 
 - **Fluxos avançados de compensação (Saga completa com rollback automático)** estão **fora de escopo** nas Fases 0–2. O lab cobre apenas o caminho feliz e um subconjunto de exceções (recusa de pagamento, falta de estoque) como *eventos de fim de fluxo*, sem orquestrar estornos automáticos.
 - Não haverá interface de usuário (frontend). Toda interação é via API/eventos.
-- Não haverá multi-tenancy, autenticação de usuário final completa (login, cadastro) — apenas autenticação de serviço/API (API Key ou JWT de serviço).
+- Não haverá multi-tenancy, autenticação de usuário final completa (login, cadastro) — apenas autenticação de serviço machine-to-machine via JWT (AWS Cognito, `client_credentials`), implementada na Fase 1 (ver `.specs/features/auth/spec.md`); a alternativa de API Key foi descartada nessa decisão.
 - Não haverá integração com gateways de pagamento reais — o subdomínio Payment será **simulado** (mock determinístico ou probabilístico configurável).
 - Não haverá deploy em produção real nem SLA comercial — métricas de NFR são alvos de laboratório, não compromissos contratuais.
 - Não haverá suporte a múltiplos brokers simultâneos em produção (o objetivo da Fase 2 é intercambiabilidade, não coexistência).
@@ -77,7 +79,25 @@ Times que adotam arquitetura orientada a eventos frequentemente cometem os mesmo
 
 **Critério de saída da Fase 0:** `POST /orders` cria um pedido válido, persiste e retorna 201 com o recurso criado, com testes unitários passando e sem nenhuma dependência de mensageria.
 
-### 3.2 Fase 1 — Mensageria com SNS/SQS e fluxo assíncrono completo
+### 3.2 Fase 1 — Autenticação machine-to-machine (Cognito)
+
+Especificação completa (goals, user stories, acceptance criteria, edge cases) em `.specs/features/auth/spec.md`. Resumo:
+
+| Entregável | Descrição | Valor | Dependências | Prioridade |
+|---|---|---|---|---|
+| `AuthStack` (CDK) | User Pool Cognito + Resource Server + App Client + domínio hospedado (`/oauth2/token`) | Emissor de token M2M | Nenhuma (stack independente) | Must |
+| Authorizer JWT no API Gateway | `HttpJwtAuthorizer` nativo apontando para o User Pool, aplicado às rotas de `orders` | Camada 1 de defesa em profundidade | `AuthStack` | Must |
+| Guard `CognitoAuthGuard` (NestJS) | Revalida assinatura/issuer/audience do JWT, independente do API Gateway; `@Public()` como opt-out por rota (`APP_GUARD` global) | Camada 2 de defesa em profundidade | `AuthStack` | Must |
+| `AUTH_PROVIDER` (`COGNITO` \| `NONE`) | Alterna guard real vs. no-op; default `COGNITO` (seguro por padrão) | Dev/teste local sem depender de Cognito real | Guard NestJS | Must |
+| Throttling básico na borda | Rate/burst nativo do HTTP API nas rotas de `orders`, 429 acima do limite | Complementa defesa em profundidade (PRD §5.4) | `AuthStack`, API Gateway | Should |
+
+**Fora de escopo desta fase (registrado em `.specs/features/auth/spec.md`):** autorização por escopo/permissão (`orders.read` vs `orders.write`) — só existe "autenticado ou não"; login de usuário final; múltiplos App Clients; rotação automática de client secret; rate limiting avançado (WAF, por client).
+
+**Critério de saída da Fase 1:** `POST /orders` e `GET /orders/:id` rejeitam com 401 toda chamada sem JWT válido do Cognito em ambas as camadas; suíte de testes local roda sem depender de Cognito real (`AUTH_PROVIDER=NONE`); throttling configurado na borda.
+
+**Status:** ✅ Concluída — ver `.specs/features/auth/validation.md` e `ROADMAP.md`.
+
+### 3.3 Fase 2 — Mensageria com SNS/SQS e fluxo assíncrono completo
 
 | Entregável | Descrição | Valor | Dependências | Prioridade |
 |---|---|---|---|---|
@@ -97,9 +117,9 @@ Times que adotam arquitetura orientada a eventos frequentemente cometem os mesmo
 | Testes de integração (LocalStack) | Simulação de SNS/SQS local para testes automatizados do fluxo | Confiabilidade sem depender de AWS real | Adapters SNS/SQS | Must |
 | Testes de contrato de evento | Validação de schema de cada evento publicado/consumido | Evita quebras silenciosas de contrato | Contratos de evento | Should |
 
-**Critério de saída da Fase 1:** um pedido criado via `POST /orders` percorre todo o fluxo (reserva → pagamento → baixa → notificação) de forma assíncrona, com idempotência comprovada em teste de duplicidade e DLQ funcional em teste de falha permanente.
+**Critério de saída da Fase 2:** um pedido criado via `POST /orders` percorre todo o fluxo (reserva → pagamento → baixa → notificação) de forma assíncrona, com idempotência comprovada em teste de duplicidade e DLQ funcional em teste de falha permanente.
 
-### 3.3 Fase 2 — RabbitMQ como adapter intercambiável
+### 3.4 Fase 3 — RabbitMQ como adapter intercambiável
 
 | Entregável | Descrição | Valor | Dependências | Prioridade |
 |---|---|---|---|---|
@@ -111,7 +131,7 @@ Times que adotam arquitetura orientada a eventos frequentemente cometem os mesmo
 | Teste de regressão cruzado (mesmo caso de uso, dois brokers) | Executar o fluxo completo ponta a ponta em ambos os brokers e comparar resultado final do domínio | Prova definitiva de isolamento domínio/infraestrutura | Ambos adapters funcionais | Must |
 | Documentação de trade-offs SNS/SQS vs RabbitMQ | Registro de diferenças observadas (latência, garantias de entrega, ordenação, operação) | Insumo de decisão para uso futuro fora do lab | Testes cruzados | Should |
 
-**Critério de saída da Fase 2:** o fluxo completo do pedido roda sem alteração de código de domínio/aplicação ao trocar `MESSAGING_PROVIDER` de `SNS_SQS` para `RABBITMQ`, com os mesmos testes de contrato passando em ambos os adapters.
+**Critério de saída da Fase 3:** o fluxo completo do pedido roda sem alteração de código de domínio/aplicação ao trocar `MESSAGING_PROVIDER` de `SNS_SQS` para `RABBITMQ`, com os mesmos testes de contrato passando em ambos os adapters.
 
 ---
 
@@ -277,7 +297,7 @@ sequenceDiagram
   ```
 - **Validações obrigatórias:** `orderId` e `customerId` presentes.
 - **Idempotency key:** `orderId` — Notification verifica `processed_events(consumer=notification, idempotencyKey=orderId)` (evita notificar o cliente duas vezes).
-- **Regra de transição de estado:** pedido (visão agregada, se mantida) transita para `COMPLETED`.
+- **Regra de transição de estado:** o subdomínio Order consome os eventos terminais do fluxo (`StockDeducted` → `COMPLETED`; `PaymentDeclined` → `PAYMENT_DECLINED`; `StockUnavailable` → `STOCK_UNAVAILABLE`) e atualiza seu próprio registro de status — `GET /orders/:id` reflete o progresso real do pedido (decisão registrada em `.specs/features/messaging-flow/context.md` e AD-015, `STATE.md`).
 - **Resultado esperado:** notificação simulada enviada (log estruturado ou mock de e-mail); fim do fluxo.
 
 ### 4.4 Fluxos excepcionais
@@ -396,8 +416,10 @@ Todo evento segue o envelope canônico:
 
 ### 5.4 Autenticação (defesa em profundidade)
 
-- **Camada 1 — API Gateway (ou equivalente na borda):** validação de JWT de serviço, rate limiting básico.
-- **Camada 2 — Validação no backend (NestJS):** guard de autenticação reaplicando a validação do token (nunca confiar apenas na borda) — verifica apenas que a requisição carrega um JWT válido do client de serviço, sem diferenciação de escopo/permissão entre operações.
+Implementada na Fase 1 como feature dedicada (ver §3.2 e `.specs/features/auth/`), não apenas como requisito transversal da Fase 0.
+
+- **Camada 1 — API Gateway:** `HttpJwtAuthorizer` nativo validando JWT emitido pelo AWS Cognito (fluxo M2M `client_credentials`), rate limiting básico (throttling rate/burst nativo do HTTP API).
+- **Camada 2 — Validação no backend (NestJS):** `CognitoAuthGuard` reaplica a validação do token (assinatura, issuer, audience — nunca confia apenas na borda); `AUTH_PROVIDER=NONE` desliga o guard para dev/teste local sem depender de Cognito real (default `COGNITO` quando ausente).
 - **Autorização (fora de escopo nesta fase):** não há diferenciação de permissões por escopo/claim (ex. `orders.read` vs `orders.write`) nem por client — qualquer client de serviço autenticado tem acesso equivalente a `POST /orders`/`GET /orders/:id`. Decisão explícita do usuário, registrada em `.specs/features/auth/spec.md` (Out of Scope) e AD-021 (`STATE.md`); revisitar apenas se um requisito real de autorização granular surgir.
 - Comunicação entre subdomínios via eventos não exige autenticação ponto-a-ponto adicional nesta fase (fronteira de confiança = dentro do broker gerenciado), mas o acesso à administração do broker (filas/tópicos) deve ser restrito por IAM (SNS/SQS) ou usuários/vhosts (RabbitMQ).
 
@@ -484,21 +506,23 @@ graph LR
 - [ ] `POST /orders` com itens vazios ou valores inválidos retorna 400.
 - [ ] Testes unitários do domínio `Order` cobrem as invariantes (pedido sem itens é rejeitado; valor total é calculado corretamente).
 
-**Fase 1 (fluxo principal):**
+**Fase 1 (autenticação):** ver critérios completos e evidência em `.specs/features/auth/spec.md` (§ Requirement Traceability, AUTH-01 a AUTH-07) e `.specs/features/auth/validation.md` — todos verificados (✅).
+
+**Fase 2 (fluxo principal):**
 - [ ] Um `OrderCreated` publicado resulta em `StockReserved` publicado, dado saldo suficiente.
 - [ ] Um `StockReserved` publicado resulta em `PaymentApproved` publicado, dado pagamento aprovado (mock).
 - [ ] Um `PaymentApproved` publicado resulta em `StockDeducted` publicado.
 - [ ] Um `StockDeducted` publicado resulta em notificação simulada registrada/logada.
 - [ ] `correlationId` é idêntico em todos os eventos de um mesmo pedido, do início ao fim.
 
-**Fase 1 (exceções):**
+**Fase 2 (exceções):**
 - [ ] Reenvio duplicado de `OrderCreated` (mesmo `idempotencyKey`) não gera reserva duplicada.
 - [ ] Falha transitória simulada no consumidor de `StockReserved` aciona retry e eventualmente processa com sucesso.
 - [ ] Falha permanente simulada esgota tentativas e a mensagem aparece na DLQ correspondente.
 - [ ] `ReserveStock` com saldo insuficiente publica `StockUnavailable` e não avança para Payment.
 - [ ] `ProcessPayment` configurado para recusar publica `PaymentDeclined` e não avança para baixa de estoque.
 
-**Fase 2:**
+**Fase 3:**
 - [ ] Com `MESSAGING_PROVIDER=RABBITMQ`, o fluxo completo do caminho feliz produz o mesmo resultado final de domínio que com `MESSAGING_PROVIDER=SNS_SQS`.
 - [ ] Nenhum arquivo em `domain/` ou `application/` foi alterado entre a implementação do adapter SNS/SQS e do adapter RabbitMQ (verificável por diff/lint customizado).
 - [ ] Suite de testes de contrato roda com sucesso contra ambos os adapters (via Testcontainers para RabbitMQ e LocalStack para SNS/SQS).
@@ -515,8 +539,9 @@ graph LR
 ### 8.3 Definition of Done por fase
 
 - **Fase 0 DoD:** código revisado, testes unitários ≥ 80% de cobertura no domínio, OpenAPI publicado, `POST /orders` funcional em ambiente local sem dependências externas.
-- **Fase 1 DoD:** fluxo completo funcional via LocalStack, todos os critérios de aceite da seção 8.1 (Fase 1) verdes, observabilidade mínima (logs estruturados + correlationId) implementada, DLQ configurada e testada.
-- **Fase 2 DoD:** adapter RabbitMQ funcional com paridade de testes de contrato, troca de broker via variável de ambiente comprovada sem alteração de domínio, documentação de trade-offs entre brokers publicada.
+- **Fase 1 DoD:** todos os critérios AUTH-01 a AUTH-07 (`.specs/features/auth/spec.md`) verdes, `AUTH_PROVIDER=NONE` permite suíte local sem Cognito real, throttling configurado na borda.
+- **Fase 2 DoD:** fluxo completo funcional via LocalStack, todos os critérios de aceite da seção 8.1 (Fase 2) verdes, observabilidade mínima (logs estruturados + correlationId) implementada, DLQ configurada e testada.
+- **Fase 3 DoD:** adapter RabbitMQ funcional com paridade de testes de contrato, troca de broker via variável de ambiente comprovada sem alteração de domínio, documentação de trade-offs entre brokers publicada.
 
 ---
 
@@ -545,20 +570,24 @@ graph LR
 - Assume-se garantia de entrega "at-least-once" em ambos os brokers (nunca "exactly-once" nativo), com idempotência do lado do consumidor como responsabilidade da aplicação.
 - Assume-se time técnico com familiaridade prévia em NestJS/TypeScript; o PRD não cobre onboarding básico da stack.
 
-### 9.4 Decisões arquiteturais pendentes e trade-offs
+### 9.4 Decisões arquiteturais — resolvidas
 
-| Decisão pendente | Opções em avaliação | Trade-off |
+Todas as decisões desta seção já foram fechadas (ver `STATE.md` para motivação completa de cada uma). Mantidas aqui como registro histórico do trade-off avaliado.
+
+| Decisão | Opções avaliadas | Resolução |
 |---|---|---|
-| Persistência do domínio | Postgres via TypeORM vs. Prisma | TypeORM tem mais maturidade com NestJS; Prisma tem DX superior mas менее idiomático em hexagonal puro |
-| Mecanismo de consumo SQS | Polling manual vs. `@nestjs/microservices` custom transport | Custom transport é mais "NestJS idiomático", polling manual dá mais controle sobre retry/DLQ |
-| Local do outbox poller | Processo separado vs. job dentro do próprio serviço (cron/interval) | Processo separado escala independente, mas aumenta complexidade operacional do lab |
-| Armazenamento de idempotency store | Tabela dedicada por subdomínio vs. store compartilhado (ex.: Redis) | Tabela dedicada é mais simples de raciocinar por subdomínio; Redis compartilhado reduz duplicação de infraestrutura mas cria acoplamento operacional |
+| Persistência do domínio | Postgres via TypeORM vs. Prisma | **TypeORM** — mais maturidade com NestJS em arquitetura hexagonal (`STATE.md`, 2026-07-13) |
+| Mecanismo de consumo SQS | Polling manual vs. `@nestjs/microservices` custom transport | **Polling manual** na camada de `infrastructure` — controle direto sobre retry/DLQ/visibility timeout, preserva portabilidade das portas para RabbitMQ (AD-011) |
+| Local do outbox poller | Processo separado vs. job dentro do próprio serviço (cron/interval) | **Job agendado dentro do processo** (`@nestjs/schedule`), consistente com a topologia de monólito modular (AD-012) |
+| Armazenamento de idempotency store | Tabela dedicada por subdomínio vs. store compartilhado (ex.: Redis) | **Redis compartilhado** entre todos os consumidores, chave `consumer + idempotencyKey`, TTL nativo — decisão explícita do usuário, contra a recomendação de isolamento por subdomínio (AD-010) |
 
 ---
 
 ## 10. Plano de Entrega
 
 ### 10.1 Roadmap incremental
+
+Sequenciamento indicativo (sem datas fixas de calendário). Para status de execução real e datas de conclusão, ver `.specs/project/ROADMAP.md` — fonte viva, atualizada a cada fase concluída.
 
 ```mermaid
 gantt
@@ -571,16 +600,21 @@ gantt
     Adapter HTTP + persistencia             :f0b, after f0a, 2
     Testes unitarios + DoD Fase 0           :f0c, after f0b, 1
 
-    section Fase 1
-    Portas de mensageria + adapter SNS/SQS  :f1a, after f0c, 3
-    Subdominios Stock/Payment/Notification  :f1b, after f1a, 4
-    Idempotencia + retry + DLQ              :f1c, after f1b, 2
-    Observabilidade + testes integracao     :f1d, after f1c, 2
+    section Fase 1 - Autenticacao
+    AuthStack (Cognito) + authorizer JWT    :f1a, after f0c, 2
+    Guard NestJS + AUTH_PROVIDER            :f1b, after f1a, 1
+    Throttling na borda                     :f1c, after f1b, 1
 
-    section Fase 2
-    Adapter RabbitMQ                        :f2a, after f1d, 3
-    Configuracao de broker intercambiavel   :f2b, after f2a, 1
-    Testes cruzados + documentacao          :f2c, after f2b, 2
+    section Fase 2 - Mensageria
+    Portas de mensageria + adapter SNS/SQS  :f2a, after f1c, 3
+    Subdominios Stock/Payment/Notification  :f2b, after f2a, 4
+    Idempotencia + retry + DLQ              :f2c, after f2b, 2
+    Observabilidade + testes integracao     :f2d, after f2c, 2
+
+    section Fase 3 - RabbitMQ
+    Adapter RabbitMQ                        :f3a, after f2d, 3
+    Configuracao de broker intercambiavel   :f3b, after f3a, 1
+    Testes cruzados + documentacao          :f3c, after f3b, 2
 ```
 
 ### 10.2 Marcos (milestones)
@@ -588,8 +622,9 @@ gantt
 | Marco | Critério de conclusão | Dependência crítica |
 |---|---|---|
 | M0 — Domínio fundacional pronto | DoD Fase 0 atendido | Nenhuma |
-| M1 — Fluxo assíncrono funcional | DoD Fase 1 atendido, incluindo cenários de exceção | M0 |
-| M2 — Broker intercambiável comprovado | DoD Fase 2 atendido | M1 |
+| M1 — Autenticação Cognito funcional | DoD Fase 1 atendido | M0 |
+| M2 — Fluxo assíncrono funcional | DoD Fase 2 atendido, incluindo cenários de exceção | M1 |
+| M3 — Broker intercambiável comprovado | DoD Fase 3 atendido | M2 |
 
 ### 10.3 Indicadores de progresso e qualidade
 
@@ -610,16 +645,17 @@ gantt
 - Integração real com gateway de pagamento (fora de mock).
 - Tracing distribuído completo via OpenTelemetry (hoje apenas correlationId/traceId propagado manualmente em logs) — **sugestão**, não compromisso.
 - Suporte a múltiplos itens de catálogo com regras de reserva parcial (reservar o que houver, recusar o restante).
-- Projeção de leitura (read model) consolidada do status do pedido, consultável via `GET /orders/:id`.
 
 ---
 
 ## 12. Perguntas em Aberto (para refinamento com stakeholders)
 
-1. O subdomínio Payment deve simular recusa de forma determinística (ex.: valor acima de X sempre recusa) ou probabilística (ex.: 10% de chance de recusa), para fins de teste de exceção?
-2. Deve existir uma projeção de leitura consolidada (`GET /orders/:id` com status agregado) já no MVP, ou isso fica inteiramente no Backlog Futuro (seção 11)?
-3. Qual o SLA/tempo máximo aceitável antes de um pedido ser considerado "estagnado" para fins de observabilidade/alerta (seção 4.4, timeout entre etapas)?
-4. A idempotency store deve ser compartilhada entre subdomínios (ex.: Redis único) ou estritamente isolada por subdomínio (tabela própria por serviço)?
-5. Há expectativa de rodar Fase 1 e Fase 2 lado a lado (dois ambientes) para comparação contínua, ou a Fase 2 substitui completamente o ambiente da Fase 1 após conclusão?
-6. Deve haver algum limite de retenção de eventos processados (`processed_events`) por questões de crescimento de tabela, ou isso fica em aberto para decisão operacional futura?
-7. O lint de arquitetura (regra de "0 imports proibidos" da seção 9.1) deve ser bloqueante em CI desde a Fase 0, ou introduzido apenas a partir da Fase 1 quando a mensageria existir?
+Todas as perguntas originais foram resolvidas ao especificar as fases seguintes, exceto a #5. Mantidas aqui como registro histórico, com a resolução de cada uma.
+
+1. ~~O subdomínio Payment deve simular recusa de forma determinística ou probabilística?~~ **Resolvida:** determinística por valor — `totalAmount` acima de um limite configurável (env var) sempre recusa (AD-014, `STATE.md`; `.specs/features/messaging-flow/context.md`).
+2. ~~Deve existir uma projeção de leitura consolidada (`GET /orders/:id` com status agregado) já no MVP?~~ **Resolvida:** sim, incluída já na Fase 0 (decisão de 2026-07-13, `STATE.md`); o preenchimento do status agregado a partir dos eventos terminais entra na Fase 2 (AD-015, ver §4.3 Etapa 5).
+3. ~~Qual o SLA/tempo máximo aceitável antes de um pedido ser considerado "estagnado"?~~ **Resolvida:** 5 minutos sem progresso de evento é o limiar de observabilidade/alerta (não cancelamento automático — cancelamento ativo segue no Backlog Futuro) (`.specs/features/messaging-flow/context.md`).
+4. ~~A idempotency store deve ser compartilhada entre subdomínios ou isolada por subdomínio?~~ **Resolvida:** compartilhada — Redis único, chave `consumer + idempotencyKey`, TTL nativo (AD-010, `STATE.md`).
+5. Há expectativa de rodar Fase 2 e Fase 3 (renumeradas — mensageria e RabbitMQ) lado a lado (dois ambientes) para comparação contínua, ou a Fase 3 substitui completamente o ambiente da Fase 2 após conclusão? **Ainda em aberto** — a decidir ao iniciar a Fase 3 (`ROADMAP.md`).
+6. ~~Deve haver algum limite de retenção de eventos processados (`processed_events`) por questões de crescimento de tabela?~~ **Resolvida:** TTL nativo do Redis (consequência da resolução da #4) — sem tabela Postgres a purgar manualmente (AD-010; `.specs/features/messaging-flow/context.md`).
+7. ~~O lint de arquitetura deve ser bloqueante em CI desde a Fase 0, ou introduzido apenas a partir da mensageria?~~ **Resolvida:** bloqueante desde a Fase 0 — a estrutura hexagonal por subdomínio já nasce na Fase 0; travar cedo evita vazamento de infra no domínio (decisão de 2026-07-13, `STATE.md`).

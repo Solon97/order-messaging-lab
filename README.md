@@ -1,98 +1,76 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# order-messaging-lab
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Laboratório de engenharia que implementa, de ponta a ponta, um fluxo de processamento de pedidos orientado a eventos, usando coreografia (sem orquestrador central) sobre arquitetura hexagonal (ports-and-adapters) em NestJS + TypeScript.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+O objetivo não é construir um produto, mas validar — com código real e testado — padrões de sistemas distribuídos orientados a eventos: isolamento do domínio em relação à mensageria, portabilidade de broker, idempotência/retry/DLQ e rastreabilidade fim a fim.
 
-## Description
+## Stack
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **Framework:** NestJS (TypeScript)
+- **Persistência:** PostgreSQL via TypeORM (uma instância, um schema por subdomínio) — com adapter in-memory alternável para dev/teste sem infra externa
+- **Autenticação:** AWS Cognito (JWT), com guard `NONE` alternável para dev local
+- **Infraestrutura:** AWS CDK (`infra/`) — VPC, RDS, ECS Fargate, Cognito, CloudFront, bastion
+- **Mensageria (roadmap):** SNS/SQS (Fase 1) → RabbitMQ intercambiável via `MESSAGING_PROVIDER` (Fase 2)
 
-## Project setup
+## Arquitetura
 
-```bash
-$ npm install
+Monólito modular: um único processo NestJS com subdomínios isolados por pasta sob `src/`, cada um estruturado em hexagonal (ports-and-adapters):
+
+```
+src/<subdominio>/
+├── domain/           # entidades, value objects, erros — sem dependência de framework/infra
+├── application/       # casos de uso, portas (interfaces) de repositório
+└── infrastructure/    # adapters HTTP, persistência (TypeORM/in-memory)
 ```
 
-## Compile and run the project
+Regra de arquitetura bloqueante em CI (`npm run lint:arch`, via `dependency-cruiser`): **zero imports de SDK de mensageria (SNS/SQS/RabbitMQ) em `domain/` ou `application/`**.
+
+Subdomínio implementado até o momento: `order` (`POST /orders`, `GET /orders/:id`). `payment`, `stock` e `notification` entram nas fases seguintes do roadmap (ver `.specs/project/PRD.md` e `.specs/project/ROADMAP.md`).
+
+## Rodando localmente
 
 ```bash
-# development
-$ npm run start
+npm install
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+# desenvolvimento (watch mode)
+npm run start:dev
 ```
 
-## Run tests
+A API sobe em `http://localhost:3000` (ou na porta definida em `PORT`). Documentação OpenAPI/Swagger disponível em `/api-docs`.
+
+### Variáveis de ambiente
+
+| Variável | Valores | Padrão | Descrição |
+|---|---|---|---|
+| `PORT` | número | `3000` | Porta HTTP |
+| `PERSISTENCE_PROVIDER` | `POSTGRES` \| `IN_MEMORY` | `POSTGRES` | Adapter de persistência do subdomínio `order` |
+| `DATABASE_URL` | connection string | — | Necessária quando `PERSISTENCE_PROVIDER=POSTGRES` |
+| `DATABASE_SSL` | `true` \| `false` | `false` | Habilita SSL na conexão com o Postgres |
+| `AUTH_PROVIDER` | `COGNITO` \| `NONE` | `COGNITO` | `NONE` desativa autenticação (uso local/dev) |
+| `COGNITO_USER_POOL_ID` | string | — | Necessária quando `AUTH_PROVIDER=COGNITO` |
+| `COGNITO_CLIENT_ID` | string | — | Necessária quando `AUTH_PROVIDER=COGNITO` |
+
+Para rodar sem dependências externas: `PERSISTENCE_PROVIDER=IN_MEMORY AUTH_PROVIDER=NONE npm run start:dev`.
+
+## Testes
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run test        # testes unitários
+npm run test:cov     # cobertura (mínimo 80% em domain/order)
+npm run test:e2e      # testes e2e
+npm run lint:arch     # lint de arquitetura (fronteiras entre domain/application/infrastructure)
 ```
 
-## Deployment
+## Infraestrutura e deploy
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+O deploy em AWS (CDK: `FoundationStack`, `NetworkStack`, `AuthStack`, `DatabaseStack`, `ComputeStack`, `BastionStack`, `EdgeStack`) e os workflows de CI/CD vivem em [`infra/`](infra/README.md) e [`.github/workflows/`](.github/workflows). Consulte o runbook em `infra/README.md` para o passo a passo de provisionamento.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Documentação do projeto
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+Especificações, decisões arquiteturais e roadmap seguem o fluxo spec-driven em `.specs/`:
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- [`.specs/project/PROJECT.md`](.specs/project/PROJECT.md) — visão, objetivos, escopo e stack
+- [`.specs/project/PRD.md`](.specs/project/PRD.md) — requisitos detalhados
+- [`.specs/project/ROADMAP.md`](.specs/project/ROADMAP.md) — fases e sequenciamento
+- [`.specs/project/STATE.md`](.specs/project/STATE.md) — log de decisões e estado atual
+- [`.specs/features/`](.specs/features) — spec/design/tasks/validation por feature
