@@ -1,19 +1,5 @@
 name: Destroy Infra
 
-# Runs manually (always destroys, no confirmation prompt — dispatching it by
-# hand is confirmation enough), or every 30 minutes to auto-destroy when the
-# repo has been idle (no commits on main in the last hour) — a scheduled run
-# backs off if there was recent activity, so it doesn't yank the environment
-# out from under active development. Tears down every cost-generating stack EXCEPT FoundationStack,
-# which owns the ECR repository (and its current image), the image-tag SSM
-# parameter, and the GitHub OIDC deploy/push roles this workflow itself
-# authenticates with. Keeping it alive means:
-#   - the ECR repo + latest image survive the teardown
-#   - `github-actions-cdk-deploy` / `github-actions-*-ecr-push` still exist,
-#     so this workflow (and future deploys) keep working without needing to
-#     re-bootstrap roles by hand
-# Recreating the destroyed stacks is done via the "Bring Up Environment"
-# workflow (bring-up.yml).
 on:
   schedule:
     - cron: '*/30 * * * *'
@@ -32,11 +18,6 @@ env:
   CDK_DEPLOY_ROLE_ARN: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-cdk-deploy
 
 jobs:
-  # Manual runs always destroy — dispatching this workflow by hand is
-  # confirmation enough. Scheduled runs instead check whether main has had a
-  # commit in the last hour — if so, the repo looks active and the run backs
-  # off. Kept as its own job (rather than a per-step `if`) so the decision is
-  # made once and the destroy job below can gate on it with a single `if`.
   check:
     runs-on: ubuntu-latest
     outputs:

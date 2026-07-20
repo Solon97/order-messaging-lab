@@ -153,9 +153,6 @@ jobs:
         working-directory: infra
         run: npm ci
 
-      # Only the ComputeStack needs to be redeployed to roll out the new
-      # image tag — other stacks (network, database, edge, foundation)
-      # belong to the infra deploy workflow.
       - name: Deploy ComputeStack
         working-directory: infra
         run: npx cdk deploy ComputeStack --require-approval never
@@ -170,12 +167,8 @@ jobs:
           echo "service_sg=$SERVICE_SG" >> "$GITHUB_OUTPUT"
           echo "subnet=$SUBNET" >> "$GITHUB_OUTPUT"
 
-      # TypeORM migrations only apply pending ones, so it's safe to run this
-      # on every push rather than gating it to the first deploy.
       - name: Run database migration
         env:
-          # Deterministic literal — see the matching `clusterName` in
-          # infra/lib/compute-stack.ts.
           CLUSTER: order-service-cluster
           SUBNET: ${{ steps.migration-network.outputs.subnet }}
           SERVICE_SG: ${{ steps.migration-network.outputs.service_sg }}
